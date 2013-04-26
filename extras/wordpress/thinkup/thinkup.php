@@ -1,22 +1,22 @@
 <?php
 /*
  Plugin Name: ThinkUp WP Plugin
- Plugin URI: http://thinkupapp.com
+ Plugin URI: http://thinkup.com
  Description: Displays ThinkUp data on your WordPress blog.
  Version: 0.8
  Author: Gina Trapani and the ThinkUp community
- Author URI: http://thinkupapp.com
+ Author URI: http://thinkup.com
  */
 
 /**
  *
  * ThinkUp/extras/wordpress/thinkup/thinkup.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Sam Rose, Mark Jaquith
+ * Copyright (c) 2009-2013 Gina Trapani, Sam Rose, Mark Jaquith
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -33,7 +33,7 @@
  *
  * @author Sam Rose
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 require_once 'classes/ThinkUpShortcodeHandler.class.php';
 require_once 'classes/ThinkUpAdminPages.class.php';

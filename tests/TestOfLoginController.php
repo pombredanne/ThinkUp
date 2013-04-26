@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfLoginController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,44 +23,45 @@
  * Test of LoginController
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  */
 
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
-
-require_once THINKUP_ROOT_PATH.'webapp/plugins/twitter/model/class.TwitterOAuthThinkUp.php';
-require_once THINKUP_ROOT_PATH.'webapp/plugins/twitter/model/class.TwitterPlugin.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 
 class TestOfLoginController extends ThinkUpUnitTestCase {
-    var $builder1;
-    var $builder2;
-    var $builder3;
 
     public function setUp(){
         parent::setUp();
-        $webapp = Webapp::getInstance();
-        $webapp->registerPlugin('twitter', 'TwitterPlugin');
+        $this->DAO = new OwnerMySQLDAO();
+        $this->builders = self::buildData();
+    }
 
-        $session = new Session();
-        $cryptpass = $session->pwdcrypt("secretpassword");
+    protected function buildData() {
+        $builders = array();
 
-        $owner = array('id'=>1, 'email'=>'me@example.com', 'pwd'=>$cryptpass, 'is_activated'=>1);
-        $this->builder1 = FixtureBuilder::build('owners', $owner);
+        $hashed_pass = ThinkUpTestLoginHelper::hashPasswordUsingDeprecatedMethod("secretpassword");
 
-        $instance = array('id'=>1);
-        $this->builder2 = FixtureBuilder::build('instances', $instance);
+        $builders[] = FixtureBuilder::build('owners', array('id'=>1, 'email'=>'me@example.com', 'pwd'=>$hashed_pass,
+        'pwd_salt'=>OwnerMySQLDAO::$default_salt, 'is_activated'=>1, 'is_admin'=>1));
 
-        $owner_instance = array('owner_id'=>1, 'instance_id'=>1);
-        $this->builder3 = FixtureBuilder::build('owner_instances', $owner_instance);
+        $builders[] = FixtureBuilder::build('instances', array('id'=>1));
+
+        $builders[] = FixtureBuilder::build('owner_instances', array('owner_id'=>1, 'instance_id'=>1));
+
+        $test_salt = 'test_salt';
+        $password = ThinkUpTestLoginHelper::hashPasswordUsingCurrentMethod('secretpassword', $test_salt);
+
+        $builders[] = FixtureBuilder::build('owners', array('id'=>6, 'email'=>'salt@example.com', 'pwd'=>$password,
+        'pwd_salt'=>$test_salt, 'is_activated'=>1, 'is_admin'=>1));
+
+        return $builders;
     }
 
     public function tearDown() {
-        $this->builder1 = null;
-        $this->builder2 = null;
-        $this->builder3 = null;
+        $this->builders = null;
         parent::tearDown();
     }
 
@@ -82,7 +83,7 @@ class TestOfLoginController extends ThinkUpUnitTestCase {
 
         $v_mgr = $controller->getViewManager();
         $this->assertEqual($v_mgr->getTemplateDataItem('controller_title'), 'Log in');
-        $this->assertEqual($v_mgr->getTemplateDataItem('errormsg'), 'Email must not be empty');
+        $this->assertEqual($v_mgr->getTemplateDataItem('error_msg'), 'Email must not be empty');
         $this->assertPattern("/Log In/", $results);
     }
 
@@ -95,7 +96,7 @@ class TestOfLoginController extends ThinkUpUnitTestCase {
 
         $v_mgr = $controller->getViewManager();
         $this->assertEqual($v_mgr->getTemplateDataItem('controller_title'), 'Log in');
-        $this->assertEqual($v_mgr->getTemplateDataItem('errormsg'), 'Password must not be empty');
+        $this->assertEqual($v_mgr->getTemplateDataItem('error_msg'), 'Password must not be empty');
         $this->assertPattern("/Log In/", $results);
     }
 
@@ -108,7 +109,7 @@ class TestOfLoginController extends ThinkUpUnitTestCase {
 
         $v_mgr = $controller->getViewManager();
         $this->assertEqual($v_mgr->getTemplateDataItem('controller_title'), 'Log in');
-        $this->assertEqual($v_mgr->getTemplateDataItem('errormsg'), 'Incorrect email');
+        $this->assertEqual($v_mgr->getTemplateDataItem('error_msg'), 'Incorrect email');
         $this->assertPattern("/Log In/", $results);
     }
 
@@ -121,15 +122,23 @@ class TestOfLoginController extends ThinkUpUnitTestCase {
 
         $v_mgr = $controller->getViewManager();
         $this->assertEqual($v_mgr->getTemplateDataItem('controller_title'), 'Log in');
-        $this->assertEqual($v_mgr->getTemplateDataItem('errormsg'), 'Incorrect password');
+        $this->assertEqual($v_mgr->getTemplateDataItem('error_msg'), 'Incorrect password');
         $this->assertPattern("/Log In/", $results);
     }
 
-    public function testDeactivatedUser() {
-        $session = new Session();
-        $cryptpass = $session->pwdcrypt("blah");
+    public function testCleanXSS() {
+        $_POST['Submit'] = 'Log In';
+        $_POST['email'] = "me@example.com <script>alert('wa');</script>";
+        $_POST['pwd'] = 'notherightpassword';
+        $controller = new LoginController(true);
+        $results = $controller->go();
+        $this->assertPattern("/me@example.com &#60;script&#62;alert\(&#39;wa&#39;\);&#60;\/script&#62;/", $results);
+    }
 
-        $owner = array('id'=>2, 'email'=>'me2@example.com', 'pwd'=>$cryptpass, 'is_activated'=>0);
+    public function testDeactivatedUser() {
+        $hashed_pass = ThinkUpTestLoginHelper::hashPasswordUsingDeprecatedMethod("blah");
+
+        $owner = array('id'=>2, 'email'=>'me2@example.com', 'pwd'=>$hashed_pass, 'is_activated'=>0);
         $builder = FixtureBuilder::build('owners', $owner);
 
         $_POST['Submit'] = 'Log In';
@@ -140,34 +149,49 @@ class TestOfLoginController extends ThinkUpUnitTestCase {
 
         $v_mgr = $controller->getViewManager();
         $this->assertEqual($v_mgr->getTemplateDataItem('controller_title'), 'Log in');
-        $this->assertPattern("/Inactive account/", $v_mgr->getTemplateDataItem('errormsg'));
+        $error_msg = 'Inactive account. ';
+        $error_msg .= '<a href="http://thinkup.com/docs/install/install.html#activate-your-account">';
+        $error_msg .= 'You must activate your account.</a>';
+        $this->assertEqual($error_msg, $v_mgr->getTemplateDataItem('error_msg'));
     }
 
-    public function testCorrectUserPassword() {
+    public function testCorrectUserPasswordAndUniqueSalt() {
+        $_POST['Submit'] = 'Log In';
+        $_POST['email'] = 'salt@example.com';
+        $_POST['pwd'] = 'secretpassword';
+
+        $controller = new LoginController(true);
+        $results = $controller->go();
+
+        $this->assertPattern("/salt@example.com/", $results);
+    }
+
+    public function testCorrectUserPasswordAndNoUniqueSalt() {
         $_POST['Submit'] = 'Log In';
         $_POST['email'] = 'me@example.com';
         $_POST['pwd'] = 'secretpassword';
 
         $controller = new LoginController(true);
         $results = $controller->go();
+        $this->debug($results);
 
-        $this->assertPattern("/Logged in as: me@example.com/", $results);
+        $this->assertPattern("/me@example.com/", $results);
     }
 
     public function testAlreadyLoggedIn() {
-        $this->simulateLogin('me@example.com');
+        $this->simulateLogin('me@example.com', true);
 
         $controller = new LoginController(true);
         $results = $controller->go();
 
-        $this->assertPattern('/Logged in as: me@example.com/', $results);
+        $this->assertPattern('/me@example.com/', $results);
     }
 
     public function testFailedLoginIncrements() {
-        $session = new Session();
-        $cryptpass = $session->pwdcrypt("blah");
+        $hashed_pass = ThinkUpTestLoginHelper::hashPasswordUsingDeprecatedMethod("blah");
 
-        $owner = array('id'=>2, 'email'=>'me2@example.com', 'pwd'=>$cryptpass, 'is_activated'=>1);
+        $owner = array('id'=>2, 'email'=>'me2@example.com', 'pwd'=>$hashed_pass, 'is_activated'=>1,
+        'pwd_salt'=>OwnerMySQLDAO::$default_salt);
         $builder = FixtureBuilder::build('owners', $owner);
 
         //try 5 failed logins then a successful one and assert failed login count gets reset
@@ -181,9 +205,8 @@ class TestOfLoginController extends ThinkUpUnitTestCase {
 
             $v_mgr = $controller->getViewManager();
             $this->assertEqual($v_mgr->getTemplateDataItem('controller_title'), 'Log in');
-            $this->assertPattern("/Incorrect password/", $v_mgr->getTemplateDataItem('errormsg'));
-            $owner_dao = new OwnerMySQLDAO();
-            $owner = $owner_dao->getByEmail('me2@example.com');
+            $this->assertPattern("/Incorrect password/", $v_mgr->getTemplateDataItem('error_msg'));
+            $owner = $this->DAO->getByEmail('me2@example.com');
             $this->assertEqual($owner->failed_logins, $i);
             $i = $i + 1;
         }
@@ -196,22 +219,20 @@ class TestOfLoginController extends ThinkUpUnitTestCase {
 
         $v_mgr = $controller->getViewManager();
         $this->assertEqual($v_mgr->getTemplateDataItem('controller_title'), 'Log in');
-        $this->assertNoPattern("/Incorrect password/", $v_mgr->getTemplateDataItem('errormsg'));
-        $owner_dao = new OwnerMySQLDAO();
-        $owner = $owner_dao->getByEmail('me2@example.com');
+        $this->assertNoPattern("/Incorrect password/", $v_mgr->getTemplateDataItem('error_msg'));
+        $owner = $this->DAO->getByEmail('me2@example.com');
         $this->assertEqual($owner->failed_logins, 0);
     }
 
     public function testFailedLoginLockout() {
-        $session = new Session();
-        $cryptpass = $session->pwdcrypt("blah");
+        $hashed_pass =ThinkUpTestLoginHelper::hashPasswordUsingDeprecatedMethod("blah");
 
-        $owner = array('id'=>2, 'email'=>'me2@example.com', 'pwd'=>$cryptpass, 'is_activated'=>1);
+        $owner = array('id'=>2, 'email'=>'me2@example.com', 'pwd'=>$hashed_pass, 'is_activated'=>1);
         $builder = FixtureBuilder::build('owners', $owner);
 
         //force login lockout by providing the wrong password more than 10 times
         $i = 1;
-        while ($i <= 15) {
+        while ($i <= 11) {
             $_POST['Submit'] = 'Log In';
             $_POST['email'] = 'me2@example.com';
             $_POST['pwd'] = 'blah1';
@@ -220,20 +241,46 @@ class TestOfLoginController extends ThinkUpUnitTestCase {
 
             $v_mgr = $controller->getViewManager();
             $this->assertEqual($v_mgr->getTemplateDataItem('controller_title'), 'Log in');
-            if ($i <= 11) {
-                $this->assertPattern("/Incorrect password/", $v_mgr->getTemplateDataItem('errormsg'));
-                $owner_dao = new OwnerMySQLDAO();
-                $owner = $owner_dao->getByEmail('me2@example.com');
+
+            $owner = $this->DAO->getByEmail('me2@example.com');
+
+            if ($i < 10) {
+                $this->assertPattern("/Incorrect password/", $v_mgr->getTemplateDataItem('error_msg'));
                 $this->assertEqual($owner->failed_logins, $i);
             } else {
                 $this->assertEqual("Inactive account. Account deactivated due to too many failed logins. ".
-                '<a href="forgot.php">Reset your password.</a>', $v_mgr->getTemplateDataItem('errormsg'));
-                $owner_dao = new OwnerMySQLDAO();
-                $owner = $owner_dao->getByEmail('me2@example.com');
+                '<a href="forgot.php">Reset your password.</a>', $v_mgr->getTemplateDataItem('error_msg'));
                 $this->assertEqual($owner->account_status, "Account deactivated due to too many failed logins");
             }
             $i = $i + 1;
         }
     }
-}
 
+    public function testOfControllerWithRegistrationOpen() {
+        // make sure registration is on...
+        $bvalues = array('namespace' => OptionDAO::APP_OPTIONS, 'option_name' => 'is_registration_open',
+        'option_value' => 'true');
+        $bdata = FixtureBuilder::build('options', $bvalues);
+
+        $controller = new LoginController(true);
+        $result = $controller->go();
+
+        $v_mgr = $controller->getViewManager();
+        $this->assertEqual($v_mgr->getTemplateDataItem('is_registration_open'), true);
+        $this->assertPattern('/Register/', $result);
+    }
+
+    public function testOfControllerWithRegistrationClosed() {
+        // make sure registration is closed
+        $bvalues = array('namespace' => OptionDAO::APP_OPTIONS, 'option_name' => 'is_registration_open',
+        'option_value' => 'false');
+        $bdata = FixtureBuilder::build('options', $bvalues);
+
+        $controller = new LoginController(true);
+        $result = $controller->go();
+
+        $v_mgr = $controller->getViewManager();
+        $this->assertEqual($v_mgr->getTemplateDataItem('is_registration_open'), false);
+        $this->assertNoPattern('/Register/', $result);
+    }
+}

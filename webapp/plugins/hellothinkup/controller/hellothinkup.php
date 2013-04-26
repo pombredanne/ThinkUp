@@ -2,7 +2,8 @@
 /*
  Plugin Name: Hello ThinkUp
  Plugin URI: http://github.com/ginatrapani/thinkup/tree/master/webapp/plugins/hellothinkup/
- Description: The "Hello, world!" of ThinkUp plugins.
+ Description: Developer example plugin.
+ Class: HelloThinkUpPlugin
  Version: 0.01
  Icon: assets/img/plugin_icon.png
  Author: Gina Trapani
@@ -12,11 +13,11 @@
  *
  * ThinkUp/webapp/plugins/hellothinkup/controller/hellothinkup.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -32,11 +33,11 @@
 /**
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 
-$webapp = Webapp::getInstance();
-$webapp->registerPlugin('hellothinkup', 'HelloThinkUpPlugin');
+$webapp_plugin_registrar = PluginRegistrarWebapp::getInstance();
+$webapp_plugin_registrar->registerPlugin('hellothinkup', 'HelloThinkUpPlugin');
 
-$crawler = Crawler::getInstance();
-$crawler->registerCrawlerPlugin('HelloThinkUpPlugin');
+$crawler_plugin_registrar = PluginRegistrarCrawler::getInstance();
+$crawler_plugin_registrar->registerCrawlerPlugin('HelloThinkUpPlugin');

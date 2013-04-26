@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/controller/class.CrawlerWebController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Guillaume Boudreau
+ * Copyright (c) 2009-2013 Gina Trapani, Guillaume Boudreau
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -25,14 +25,12 @@
  *
  * Runs crawler from the web for the logged-in user and outputs logging into a text area.
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Guillaume Boudreau
+ * @copyright 2009-2013 Gina Trapani, Guillaume Boudreau
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  */
 class CrawlerWebController extends ThinkUpAuthAPIController {
 
     public function authControl() {
-        Utils::defineConstants();
-
         if ($this->isAPICall()) {
             // If the request comes from an API call, output JSON instead of HTML
             $this->setContentType('application/json; charset=UTF-8');
@@ -55,8 +53,10 @@ class CrawlerWebController extends ThinkUpAuthAPIController {
                 $logger->setVerbosity(Logger::USER_MSGS);
                 $logger->enableHTMLOutput();
             }
-            $crawler = Crawler::getInstance();
-            $crawler->crawl();
+            $crawler_plugin_registrar = PluginRegistrarCrawler::getInstance();
+            //close session so that it's not locked by long crawl
+            session_write_close();
+            $crawler_plugin_registrar->runRegisteredPluginsCrawl();
             $logger->close();
         } catch (CrawlerLockedException $e) {
             if ($this->isAPICall()) {
@@ -64,7 +64,7 @@ class CrawlerWebController extends ThinkUpAuthAPIController {
                 throw $e;
             } else {
                 // Will appear in the textarea of the HTML page
-                echo $e->getMessage();
+                echo '<td></td><td>' . $e->getMessage() . '</td><td></td>';
             }
         }
 

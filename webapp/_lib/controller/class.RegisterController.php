@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/controller/class.RegisterController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Terrance Shepherd, Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,8 +23,10 @@
  *
  * Register Controller
  * Registers new ThinkUp users.
+ * This controller is not used when the installer registers the first user. Class.InstallerController handles that
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Terrance Shepherd, Gina Trapani
+ * @author Terrance Shepherd
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
@@ -43,27 +45,46 @@ class RegisterController extends ThinkUpController {
     public function __construct($session_started=false) {
         parent::__construct($session_started);
         $this->setViewTemplate('session.register.tpl');
+        $this->addHeaderJavaScript('assets/js/jqBootstrapValidation.js');
+        $this->addHeaderJavaScript('assets/js/validate-fields.js');
         $this->setPageTitle('Register');
     }
 
     public function control(){
         if ($this->isLoggedIn()) {
-            $controller = new DashboardController(true);
+            $controller = new InsightStreamController(true);
             return $controller->go();
         } else {
-            $this->disableCaching();
             $config = Config::getInstance();
+            $is_registration_open = $config->getValue('is_registration_open');
 
-            if (!$config->getValue('is_registration_open')) {
+            $this->disableCaching();
+            $invite_dao = DAOFactory::getDAO('InviteDAO') ;
+            if ( isset( $_GET['code'] ) ) {
+                $invite_code = $_GET['code'];
+            } else {
+                $invite_code = null;
+            }
+            $this->addToView('invite_code', $invite_code);
+            $is_invite_code_valid = $invite_dao->isInviteValid($invite_code);
+            if ($invite_code != null && $is_invite_code_valid) {
+                $this->addSuccessMessage("Welcome, VIP! You've been invited to register on ".
+                $config->getValue('app_title_prefix')."ThinkUp.");
+            }
+
+            $has_been_registered = false;
+            if ( !$is_registration_open && !$is_invite_code_valid ){
                 $this->addToView('closed', true);
-                $this->addErrorMessage('<p>Sorry, registration is closed on this ThinkUp installation.</p>'.
-                '<p><a href="http://github.com/ginatrapani/thinkup/tree/master">Install ThinkUp on your own '.
-                'server.</a></p>');
+                $disable_xss = true;
+                $this->addErrorMessage('<p>Sorry, registration is closed on this installation of '.
+                $config->getValue('app_title_prefix')."ThinkUp.</p>".
+                '<p><a href="http://thinkup.com" class="btn">Install ThinkUp on your own server.</a></p>', null,
+                $disable_xss);
             } else {
                 $owner_dao = DAOFactory::getDAO('OwnerDAO');
                 $this->addToView('closed', false);
                 $captcha = new Captcha();
-                if (isset($_POST['Submit']) && $_POST['Submit'] == 'Register') {
+                if (isset($_POST['Submit']) && $_POST['Submit'] == 'Register' ) {
                     foreach ($this->REQUIRED_PARAMS as $param) {
                         if (!isset($_POST[$param]) || $_POST[$param] == '' ) {
                             $this->addErrorMessage('Please fill out all required fields.');
@@ -71,34 +92,56 @@ class RegisterController extends ThinkUpController {
                         }
                     }
                     if (!$this->is_missing_param) {
+                        $valid_input = true;
                         if (!Utils::validateEmail($_POST['email'])) {
-                            $this->addErrorMessage("Incorrect email. Please enter valid email address.");
-                        } elseif (strcmp($_POST['pass1'], $_POST['pass2']) || empty($_POST['pass1'])) {
-                            $this->addErrorMessage("Passwords do not match.");
-                        } elseif (!$captcha->check()) {
-                            // Captcha not valid, captcha handles message...
-                        } else {
+                            $this->addErrorMessage("Incorrect email. Please enter valid email address.", 'email');
+                            $valid_input = false;
+                        }
+
+                        if (strcmp($_POST['pass1'], $_POST['pass2']) || empty($_POST['pass1'])) {
+                            $this->addErrorMessage("Passwords do not match.", 'password');
+                            $valid_input = false;
+                        } else if (!preg_match("/(?=.{8,})(?=.*[a-zA-Z])(?=.*[0-9])/", $_POST['pass1'])) {
+                            $this->addErrorMessage("Password must be at least 8 characters and contain both numbers ".
+                            "and letters.", 'password');
+                            $valid_input = false;
+                        }
+
+                        if (!$captcha->doesTextMatchImage()) {
+                            $this->addErrorMessage("Entered text didn't match the image. Please try again.",
+                            'captcha');
+                            $valid_input = false;
+                        }
+
+                        if ($valid_input) {
                             if ($owner_dao->doesOwnerExist($_POST['email'])) {
-                                $this->addErrorMessage("User account already exists.");
+                                $this->addErrorMessage("User account already exists.", 'email');
                             } else {
-                                $es = new SmartyThinkUp();
-                                $es->caching=false;
-                                $session = new Session();
-                                $activ_code = rand(1000, 9999);
-                                $cryptpass = $session->pwdcrypt($_POST['pass2']);
-                                $server = $_SERVER['HTTP_HOST'];
-                                $owner_dao->create($_POST['email'], $cryptpass, $activ_code, $_POST['full_name']);
+                                // Insert the details into the database
+                                $activation_code =  $owner_dao->create($_POST['email'], $_POST['pass2'],
+                                $_POST['full_name']);
 
-                                $es->assign('server', $server );
-                                $es->assign('email', urlencode($_POST['email']) );
-                                $es->assign('activ_code', $activ_code );
-                                $message = $es->fetch('_email.registration.tpl');
+                                if ($activation_code != false) {
+                                    $es = new ViewManager();
+                                    $es->caching=false;
+                                    $es->assign('application_url', Utils::getApplicationURL(false) );
+                                    $es->assign('email', urlencode($_POST['email']) );
+                                    $es->assign('activ_code', $activation_code );
+                                    $message = $es->fetch('_email.registration.tpl');
 
-                                Mailer::mail($_POST['email'], "Activate Your ".$config->getValue('app_title')
-                                ." Account", $message);
+                                    Mailer::mail($_POST['email'], "Activate Your Account on ".
+                                    $config->getValue('app_title_prefix')."ThinkUp", $message);
 
-                                SessionCache::unsetKey('ckey');
-                                $this->addSuccessMessage("Success! Check your email for an activation link.");
+                                    SessionCache::unsetKey('ckey');
+                                    $this->addSuccessMessage("Success! Check your email for an activation link.");
+                                    //delete invite code
+                                    if ( $is_invite_code_valid ) {
+                                        $invite_dao->deleteInviteCode($invite_code);
+                                    }
+                                    $has_been_registered = true;
+                                } else {
+                                    $this->addErrorMessage("Unable to register a new user. Please try again.");
+                                }
                             }
                         }
                     }
@@ -108,10 +151,12 @@ class RegisterController extends ThinkUpController {
                     if (isset($_POST["email"])) {
                         $this->addToView('mail', $_POST["email"]);
                     }
+                    $this->addToView('has_been_registered', $has_been_registered);
                 }
                 $challenge = $captcha->generate();
                 $this->addToView('captcha', $challenge);
             }
+            $this->view_mgr->addHelp('register', 'userguide/accounts/index');
             return $this->generateView();
         }
     }

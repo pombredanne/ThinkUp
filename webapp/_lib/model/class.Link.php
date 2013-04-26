@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/model/class.Link.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,64 +23,49 @@
  *
  * Link object
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @author christoffer Viken <christoffer[at]viken[dot]me>
  */
-
 class Link {
     /**
-     * Unique Identifier in storage.
-     * @var int
+     * @var int Internal unique ID.
      */
     var $id;
     /**
-     * Shortform URL
-     * @var str
+     * @var str Link URL as it appears inside the post, ie, shortened in tweets.
      */
     var $url;
     /**
-     * Expanded URL
-     * @var str
+     * @var str Link URL expanded from its shortened form.
      */
     var $expanded_url;
     /**
-     * Title of target page
-     * @var str
+     * @var str Link title.
      */
-    var $title;
+    var $title = '';
     /**
-     * Click count
-     * @var int
+     * @var str Link description.
      */
-    var $clicks;
+    var $description = '';
     /**
-     * ID of the post which this link was found
-     * @var int
+     * @var str URL of a thumbnail image associated with this link.
      */
-    var $post_id;
+    var $image_src = '';
     /**
-     * Network of the post this link is in
-     * @var str
+     * @var str Link or image caption.
      */
-    var $network;
+    var $caption = '';
     /**
-     * Link to an image?
-     * @var bool
+     * @var int Internal ID of the post in which this link appeared.
      */
-    var $is_image;
+    var $post_key;
     /**
-     * Error message
-     * @var str
+     * @var str Details of any error expanding a link.
      */
-    var $error;
+    var $error = '';
     /**
-     * Direct image URL
-     * @var str
-     */
-    var $img_src;
-    /**
-     * Container tweet
+     * Container post
      * @var Post object
      */
     var $container_post;
@@ -95,10 +80,9 @@ class Link {
      * @param array $val
      */
     public function __construct($val = false) {
-        if($val){
+        if ($val){
             $this->constructValIncluded($val);
-        }
-        else {
+        } else {
             $this->constructNoVal();
         }
     }
@@ -109,7 +93,9 @@ class Link {
      */
     private function constructValIncluded($val){
         if (isset($val["url"])) {
-            $this->id = $val["id"];
+            if (isset($val["id"])) {
+                $this->id = $val["id"];
+            }
             $this->url = $val["url"];
             if (isset($val["expanded_url"])) {
                 $this->expanded_url = $val["expanded_url"];
@@ -119,22 +105,22 @@ class Link {
                 $this->title = $val["title"];
             }
 
-            if (isset($val["clicks"])) {
-                $this->clicks = $val["clicks"];
+            if (isset($val["post_key"])) {
+                $this->post_key = $val["post_key"];
             }
-
-            if (isset($val["post_id"])) {
-                $this->post_id = $val["post_id"];
-            }
-
-            if (isset($val["network"])) {
-                $this->network = $val["network"];
-            }
-
-            $this->is_image = PDODAO::convertDBToBool($val["is_image"]);
 
             if (isset($val["error"])) {
                 $this->error = $val["error"];
+            }
+
+            if (isset($val["description"])) {
+                $this->description = $val['description'];
+            }
+            if (isset($val["image_src"])) {
+                $this->image_src = $val['image_src'];
+            }
+            if (isset($val["caption"])) {
+                $this->caption = $val['caption'];
             }
         }
     }
@@ -145,11 +131,9 @@ class Link {
     private function constructNoVal(){
         if (isset($this->other['author_user_id'])){
             $this->other['id'] = $this->id;
-            $this->other['post_id'] = $this->post_id;
-            $this->other['network'] = $this->network;
+            $this->other['post_key'] = $this->post_key;
             $this->container_post = new Post($this->other);
         }
-        $this->is_image = PDODAO::convertDBToBool($this->is_image);
     }
 
     /**
@@ -162,5 +146,14 @@ class Link {
             default:
                 $this->other[$key] = $val;
         }
+    }
+
+    /**
+     * If http:// is missing from the beginning of a string which represents a URL, add it.
+     * @param str $url
+     * @return str
+     */
+    public static function addMissingHttp($url) {
+        return ((0===stripos($url, 'http')) ? $url : 'http://'.$url);
     }
 }

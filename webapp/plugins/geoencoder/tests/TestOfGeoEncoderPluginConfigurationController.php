@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/plugins/geoencoder/tests/TestOfGeoEncoderPluginConfigurationController.php
  *
- * Copyright (c) 2009-2011 Mark Wilkie, Ekansh Preet Singh
+ * Copyright (c) 2009-2013 Mark Wilkie, Ekansh Preet Singh
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -24,20 +24,25 @@
  * Test of TestOfGeoEncoderPluginConfigurationController
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Mark Wilkie, Ekansh Preet Singh
+ * @copyright 2009-2013 Mark Wilkie, Ekansh Preet Singh
  * @author Mark Wilkie <mwilkie[at]gmail[dot]com>
  *
  */
-require_once 'tests/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/plugins/geoencoder/controller/class.GeoEncoderPluginConfigurationController.php';
+require_once dirname(__FILE__) . '/../../../../tests/init.tests.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'plugins/geoencoder/tests/classes/mock.GeoEncoderCrawler.php';
+require_once THINKUP_WEBAPP_PATH.'plugins/geoencoder/controller/class.GeoEncoderPluginConfigurationController.php';
+require_once THINKUP_WEBAPP_PATH.'plugins/geoencoder/model/class.GeoEncoderPlugin.php';
 
 class TestOfGeoEncoderPluginConfigurationController extends ThinkUpUnitTestCase {
 
     public function setUp(){
         parent::setUp();
-        $webapp = Webapp::getInstance();
-        $webapp->registerPlugin('geoencoder', 'GeoEncoderPlugin');
+        $webapp_plugin_registrar = PluginRegistrarWebapp::getInstance();
+        $webapp_plugin_registrar->registerPlugin('geoencoder', 'GeoEncoderPlugin');
+
+        $_SERVER['SERVER_NAME'] = 'dev.thinkup.com';
+        $_SERVER['HTTP_HOST'] = 'dev.thinkup.com';
     }
 
     public function tearDown(){
@@ -62,7 +67,7 @@ class TestOfGeoEncoderPluginConfigurationController extends ThinkUpUnitTestCase 
         $v_mgr = $controller->getViewManager();
         $config = Config::getInstance();
         $this->assertEqual('You must <a href="'.$config->getValue('site_root_path').
-        'session/login.php">log in</a> to do this.', $v_mgr->getTemplateDataItem('errormsg'));
+        'session/login.php">log in</a> to do this.', $v_mgr->getTemplateDataItem('error_msg'));
 
         // logged in
         // build a user
@@ -93,7 +98,6 @@ class TestOfGeoEncoderPluginConfigurationController extends ThinkUpUnitTestCase 
         $this->assertEqual(
         PluginConfigurationController::FORM_TEXT_ELEMENT, $controller->option_elements['gmaps_api_key']['type']);
         $this->assertTrue(!isset($controller->option_elements['gmaps_api_key']['default_value']));
-        $this->assertEqual($controller->option_headers['gmaps_api_key'], 'GeoEncoder Plugin Options');
         $this->assertEqual($controller->option_required_message['gmaps_api_key'],
         'Please enter your Google Maps API Key');
 
@@ -104,7 +108,7 @@ class TestOfGeoEncoderPluginConfigurationController extends ThinkUpUnitTestCase 
         //parse option_markup
         $doc = new DOMDocument();
         // parse our html
-        $doc = DOMDocument::loadHTML("<html><body>" . $options_markup . "</body></html>");
+        $doc->loadHTML("<html><body>" . $options_markup . "</body></html>");
 
         // we have a text form element with proper data
         $input_field = $this->getElementById($doc, 'plugin_options_gmaps_api_key');
@@ -123,7 +127,7 @@ class TestOfGeoEncoderPluginConfigurationController extends ThinkUpUnitTestCase 
         $v_mgr = $controller->getViewManager();
         $options_markup = $v_mgr->getTemplateDataItem('options_markup');
         // parse our html
-        $doc = DOMDocument::loadHTML("<html><body>" . $options_markup . "</body></html>");
+        $doc->loadHTML("<html><body>" . $options_markup . "</body></html>");
 
         // we have a text form element with proper data
         $input_field = $this->getElementById($doc, 'plugin_options_gmaps_api_key');
@@ -131,7 +135,7 @@ class TestOfGeoEncoderPluginConfigurationController extends ThinkUpUnitTestCase 
         // submit elements should be disbaled
         $this->assertFalse($input_field->getAttribute('disabled'));
         $submit_p = $this->getElementById($doc, 'plugin_option_submit_p');
-        $this->assertPattern('/type="submit".*save options/', $doc->saveXML( $submit_p ) );
+        $this->assertPattern('/type="submit".*Save Settings/', $doc->saveXML( $submit_p ) );
     }
 
     public function testSelectDistanceUnit() {
@@ -156,7 +160,7 @@ class TestOfGeoEncoderPluginConfigurationController extends ThinkUpUnitTestCase 
         //parse option_markup
         $doc = new DOMDocument();
         // parse our html
-        $doc = DOMDocument::loadHTML("<html><body>" . $options_markup . "</body></html>");
+        $doc->loadHTML("<html><body>" . $options_markup . "</body></html>");
 
         // we have a text form element with proper data
         $radio_div = $this->getElementById($doc, 'plugin_options_distance_unit');
@@ -165,7 +169,7 @@ class TestOfGeoEncoderPluginConfigurationController extends ThinkUpUnitTestCase 
         $this->assertEqual($radios->item(0)->getAttribute('value'), 'km');
         $this->assertEqual($radios->item(1)->getAttribute('value'), 'mi');
         $submit_p = $this->getElementById($doc, 'plugin_option_submit_p');
-        $this->assertPattern('/type="submit".*save options/', $doc->saveXML( $submit_p ) );
+        $this->assertPattern('/type="submit".*Save Settings/', $doc->saveXML( $submit_p ) );
     }
 
     public function testGetPluginOptions() {
@@ -194,7 +198,7 @@ class TestOfGeoEncoderPluginConfigurationController extends ThinkUpUnitTestCase 
         $controller = new GeoEncoderPluginConfigurationController($owner, 'geoencoder');
         $output = $controller->go();
         // we have a text form element with proper data
-        $this->assertNoPattern('/save options/', $output); // should have no submit option
+        $this->assertNoPattern('/Save Settings/', $output); // should have no submit option
         $this->assertNoPattern('/plugin_options_error_gmaps_api_key/', $output); // should have no api key
         $this->assertPattern('/var is_admin = false/', $output); // not a js admin
         $this->assertPattern('/var required_values_set = true/', $output); // is configured
@@ -202,7 +206,7 @@ class TestOfGeoEncoderPluginConfigurationController extends ThinkUpUnitTestCase 
         // not configured
         $prefix = Config::getInstance()->getValue('table_prefix');
         $namespace = $build_data[3]->columns['namespace'];
-        OwnerMysqlDAO::$PDO->query("delete from " . $prefix . "options where namespace = '$namespace'");
+        OwnerMySQLDAO::$PDO->query("delete from " . $prefix . "options where namespace = '$namespace'");
 
         $controller = new GeoEncoderPluginConfigurationController($owner, 'geoencoder');
         $output = $controller->go();
@@ -220,7 +224,7 @@ class TestOfGeoEncoderPluginConfigurationController extends ThinkUpUnitTestCase 
         $controller = new GeoEncoderPluginConfigurationController($owner, 'geoencoder');
         $output = $controller->go();
         // we have a text form element with proper data
-        $this->assertPattern('/save options/', $output); // should have submit option
+        $this->assertPattern('/Save Settings/', $output); // should have submit option
         $this->assertPattern('/plugin_options_error_gmaps_api_key/', $output); // should have api key option
         $this->assertPattern('/var is_admin = true/', $output); // is a js admin
         $this->assertPattern('/var required_values_set = true/', $output); // is configured
@@ -228,7 +232,7 @@ class TestOfGeoEncoderPluginConfigurationController extends ThinkUpUnitTestCase 
         //app not configured
         $prefix = Config::getInstance()->getValue('table_prefix');
         $namespace = $build_data[3]->columns['namespace'];
-        OwnerMysqlDAO::$PDO->query("delete from " . $prefix . "options where namespace = '$namespace'");
+        OwnerMySQLDAO::$PDO->query("delete from " . $prefix . "options where namespace = '$namespace'");
         $controller = new GeoEncoderPluginConfigurationController($owner, 'geoencoder');
         $output = $controller->go();
         $this->assertPattern('/var required_values_set = false/', $output); // is not configured

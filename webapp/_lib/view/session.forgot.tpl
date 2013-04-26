@@ -1,47 +1,65 @@
-{include file="_header.tpl"}
-{include file="_statusbar.tpl"}
+{include file="_header.tpl" enable_bootstrap=1}
+{include file="_statusbar.tpl" enable_bootstrap=1}
 
-<div class="container_24 thinkup-canvas round-all">
-  <div class="prepend_20">
-    <h1>Reset Your Password</h1>
-  </div>
-  <div class="clearfix prepend_20">
-    <div class="grid_17 prefix_3 left">
-      {if isset($errormsg)}
-        <div class="error">
-          {$errormsg}
-        </div>
-      {/if}
-      {if isset($successmsg)}
-        <div class="success">
-          {$successmsg}
-        </div>
-      {/if}
-    </div>
-  </div>
-  <div class="clearfix append_20">
-    <form name="form1" method="post" action="" class="login">
-      <div class="clearfix">
-        <div class="grid_4 prefix_5 right">
-          <label for="email">
-            Email:
-          </label>
-        </div>
-        <div class="grid_10 left">
-          <input name="email" type="text" id="email">
-        </div>
-      </div>
-      <div class="clearfix">
-        <div class="grid_10 prefix_9 left">
-          <input type="submit" id="login-save" name="Submit" class="tt-button ui-state-default ui-priority-secondary ui-corner-all" value="Send Reset">
-        </div>
-      </div>
-    </form>
-    <div class="center prepend_20 append_20">
-      <a href="register.php">Register</a> |
-      <a href="login.php">Log In</a>
-    </div>
-  </div>
-</div>
 
-{include file="_footer.tpl"}
+<div class="container">
+
+<div class="row">
+    <div class="span3">
+          <div class="embossed-block">
+            <ul>
+              <li>Reset Your Password</li>
+            </ul>
+          </div>
+    </div><!--/span3-->
+    <div class="span6">
+
+
+
+
+    {if isset($error_msgs)}
+        <div class="alert alert-error"><p>{$error_msg}</p></div>
+    {/if}
+    {if isset($success_msg)}
+        <div class="alert alert-success"><p>{$success_msg}</p></div>
+    {/if}
+
+            <form name="forgot-form" method="post" action="" class="login form-horizontal">
+
+                <fieldset style="background-color : white; padding-top : 30px;">
+                
+                
+                <div class="control-group">
+                    <label class="control-label" for="site_email">Email&nbsp;Address</label>
+                    <div class="controls">
+                        <span class="input-prepend">
+                            <span class="add-on"><i class="icon-envelope"></i></span>
+                            <input type="email" name="email" id="email" required 
+                            data-validation-required-message="<i class='icon-exclamation-sign'></i> A valid email address is required.">
+                        </span>
+                        <span class="help-inline"></span>
+                        {include file="_usermessage.tpl" field="email" enable_bootstrap=1}
+                    </div>
+                </div>
+                    
+                    
+                    
+                    <div class="form-actions">
+                            <input type="submit" id="login-save" name="Submit" class="btn btn-primary" value="Send Reset">
+                            <span class="pull-right">
+                                <div class="btn-group">
+                                    <a href="login.php" class="btn btn-mini">Log In</a>
+                                    {if $is_registration_open}<a href="register.php" class="btn btn-mini hidden-phone">Register</a>{else}{/if}
+                                    {insert name="help_link" id='forgot'}
+                                </div>
+                            </span>
+                    </div>
+
+                </fieldset>
+            </form>
+
+    </div><!-- end span9 -->
+
+</div><!-- end row -->
+
+{include file="_footer.tpl" enable_bootstrap=1}

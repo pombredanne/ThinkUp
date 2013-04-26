@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/controller/class.LoginController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -25,7 +25,7 @@
  *
  * @TODO Build mechanism for redirecting user to originally-requested logged-in only page.
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
@@ -34,13 +34,23 @@ class LoginController extends ThinkUpController {
     public function control() {
         $this->setPageTitle('Log in');
         $this->setViewTemplate('session.login.tpl');
+        $this->view_mgr->addHelp('login', 'userguide/accounts/index');
         $this->disableCaching();
+
+        $config = Config::getInstance();
+        $this->addToView('is_registration_open', $config->getValue('is_registration_open'));
+
         //don't show login form if already logged in
         if ($this->isLoggedIn()) {
-            $controller = new DashboardController(true);
+            $controller = new InsightStreamController(true);
             return $controller->go();
         } else  {
             $owner_dao = DAOFactory::getDAO('OwnerDAO');
+
+            // set var for open registration
+            $config = Config::getInstance();
+            $is_registration_open = $config->getValue('is_registration_open');
+            $this->addToView('is_registration_open', $is_registration_open);
 
             if (isset($_POST['Submit']) && $_POST['Submit']=='Log In' && isset($_POST['email']) &&
             isset($_POST['pwd']) ) {
@@ -55,32 +65,51 @@ class LoginController extends ThinkUpController {
                 } else {
                     $session = new Session();
                     $user_email = $_POST['email'];
+                    if (get_magic_quotes_gpc()) {
+                        $user_email = stripslashes($user_email);
+                    }
                     $this->addToView('email', $user_email);
                     $owner = $owner_dao->getByEmail($user_email);
                     if (!$owner) {
                         $this->addErrorMessage("Incorrect email");
                         return $this->generateView();
                     } elseif (!$owner->is_activated) {
-                        $this->addErrorMessage("Inactive account. " . $owner->account_status. ". ".
-                        '<a href="forgot.php">Reset your password.</a>');
+                        $error_msg = 'Inactive account. ';
+                        if ($owner->failed_logins == 0) {
+                            $error_msg .=
+                            '<a href="http://thinkup.com/docs/install/install.html#activate-your-account">' .
+                            'You must activate your account.</a>';
+                        } elseif ($owner->failed_logins == 10) {
+                            $error_msg .= $owner->account_status .
+                            '. <a href="forgot.php">Reset your password.</a>';
+                        }
+                        $disable_xss = true;
+                        $this->addErrorMessage($error_msg, null, $disable_xss);
                         return $this->generateView();
-                    } elseif (!$session->pwdCheck($_POST['pwd'], $owner_dao->getPass($user_email))) { //failed login
-                        if ($owner->failed_logins >= 10) {
+                        // If the credentials supplied by the user are incorrect
+                    } elseif (!$owner_dao->isOwnerAuthorized($user_email, $_POST['pwd']) ) {
+                        $error_msg = 'Incorrect password';
+                        if ($owner->failed_logins == 9) { // where 9 represents the 10th attempt!
                             $owner_dao->deactivateOwner($user_email);
-                            $owner_dao->setAccountStatus($user_email,
-                            "Account deactivated due to too many failed logins");
+                            $status = 'Account deactivated due to too many failed logins';
+                            $owner_dao->setAccountStatus($user_email, $status);
+                            $error_msg = 'Inactive account. ' . $status .
+                            '. <a href="forgot.php">Reset your password.</a>';
                         }
                         $owner_dao->incrementFailedLogins($user_email);
-                        $this->addErrorMessage("Incorrect password");
+                        $disable_xss = true;
+                        $this->addErrorMessage($error_msg, null, $disable_xss);
                         return $this->generateView();
                     } else {
-                        // this sets variables in the session
+                        // user has logged in sucessfully this sets variables in the session
                         $session->completeLogin($owner);
                         $owner_dao->updateLastLogin($user_email);
                         $owner_dao->resetFailedLogins($user_email);
-                        $owner_dao->clearAccountStatus('');
-                        $controller = new DashboardController(true);
-                        return $controller->control();
+                        $owner_dao->clearAccountStatus($user_email);
+                        if (!$this->redirect()) {
+                            $controller = new InsightStreamController(true);
+                            return $controller->go();
+                        }
                     }
                 }
             } else  {

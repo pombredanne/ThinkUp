@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfPluginOptionMySQLDAO.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Mark Wilkie
+ * Copyright (c) 2009-2013 Gina Trapani, Mark Wilkie
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -24,11 +24,11 @@
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @author Mark Wilkie <mark[at]bitterpill[dot]org>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Mark Wilkie
+ * @copyright 2009-2013 Gina Trapani, Mark Wilkie
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 
 class TestOfPluginOptionMySQLDAO extends ThinkUpUnitTestCase {
 
@@ -39,7 +39,6 @@ class TestOfPluginOptionMySQLDAO extends ThinkUpUnitTestCase {
         parent::setUp();
         $this->logger = Logger::getInstance();
         $this->config = Config::getInstance();
-        $this->prefix = $this->config->getValue('table_prefix');
     }
 
     public function tearDown() {
@@ -60,15 +59,15 @@ class TestOfPluginOptionMySQLDAO extends ThinkUpUnitTestCase {
 
         $insert_id = $builder1->columns[ 'last_insert_id' ];
         $this->assertTrue( $dao->deleteOption( $insert_id ), "delete an option" );
-        $sql = "select * from " . $this->prefix . 'options where option_id = ' . $insert_id
+        $sql = "select * from " . $this->table_prefix . 'options where option_id = ' . $insert_id
         . " and namespace != 'application_options'";
-        $stmt = PluginOptionMysqlDAO::$PDO->query($sql);
+        $stmt = PluginOptionMySQLDAO::$PDO->query($sql);
         $data = $stmt->fetch();
         $this->assertFalse($data, 'should be no plugin option data');
 
-        $sql = "select count(*) as option_count from " . $this->prefix . 'options'
+        $sql = "select count(*) as option_count from " . $this->table_prefix . 'options'
         . " where namespace != 'application_options'";
-        $stmt = PluginOptionMysqlDAO::$PDO->query($sql);
+        $stmt = PluginOptionMySQLDAO::$PDO->query($sql);
         $data = $stmt->fetch();
         $this->assertEqual($data['option_count'], 2, 'we should have two options left');
 
@@ -82,17 +81,17 @@ class TestOfPluginOptionMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual(
         $dao->insertOption( 101, 'an option name', 'an option value' ), 2, "added/inserted an option, id is 2" );
 
-        $sql = "select * from " . $this->prefix . 'options where namespace = \''
+        $sql = "select * from " . $this->table_prefix . 'options where namespace = \''
         . OptionDAO::PLUGIN_OPTIONS . '-101\'';
-        $stmt = PluginOptionMysqlDAO::$PDO->query($sql);
+        $stmt = PluginOptionMySQLDAO::$PDO->query($sql);
         $data = $stmt->fetch();
         $this->assertEqual($data['option_id'], 2);
         $this->assertEqual($data['namespace'], OptionDAO::PLUGIN_OPTIONS . '-101');
         $this->assertEqual($data['option_name'], 'an option name', 'an option name');
         $this->assertEqual($data['option_value'], 'an option value', 'an option value');
 
-        $sql = "select count(*) as option_count from " . $this->prefix . 'options';
-        $stmt = PluginOptionMysqlDAO::$PDO->query($sql);
+        $sql = "select count(*) as option_count from " . $this->table_prefix . 'options';
+        $stmt = PluginOptionMySQLDAO::$PDO->query($sql);
         $data = $stmt->fetch();
         $this->assertEqual($data['option_count'], 2, 'we should have two options');
     }
@@ -113,8 +112,8 @@ class TestOfPluginOptionMySQLDAO extends ThinkUpUnitTestCase {
         $dao->updateOption( $insert_id1, 'an option name updated', 'an option value updated' ),
             "updated an option" );
         // validate updated data
-        $sql = "select * from " . $this->prefix . 'options where option_id = '. $insert_id1;
-        $stmt = PluginOptionMysqlDAO::$PDO->query($sql);
+        $sql = "select * from " . $this->table_prefix . 'options where option_id = '. $insert_id1;
+        $stmt = PluginOptionMySQLDAO::$PDO->query($sql);
         $data = $stmt->fetch();
         $this->assertEqual($data['option_id'], $insert_id1);
         $this->assertEqual($data['namespace'], $builder1->columns[ 'namespace' ]);
@@ -122,8 +121,8 @@ class TestOfPluginOptionMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual($data['option_value'], 'an option value updated', 'value updated');
 
         // make sure we only update data for our id
-        $sql = "select * from " . $this->prefix . 'options where option_id = '. $insert_id2;
-        $stmt = PluginOptionMysqlDAO::$PDO->query($sql);
+        $sql = "select * from " . $this->table_prefix . 'options where option_id = '. $insert_id2;
+        $stmt = PluginOptionMySQLDAO::$PDO->query($sql);
         $data = $stmt->fetch();
         $this->assertEqual($data['option_id'], $insert_id2);
         $this->assertEqual($data['namespace'], $builder2->columns[ 'namespace' ]);
@@ -132,16 +131,18 @@ class TestOfPluginOptionMySQLDAO extends ThinkUpUnitTestCase {
     }
 
     public function testOfGetOptions() {
-        $plugin_builder1 = FixtureBuilder::build('plugins', array('id'=>'2', 'folder_name'=>'test_plugin'));
-        $plugin_builder2 = FixtureBuilder::build('plugins', array('id'=>'3', 'folder_name'=>'test_plugin1'));
+        $plugin_builder1 = FixtureBuilder::build('plugins', array('id'=>'7', 'folder_name'=>'test_plugin',
+        'is_active'=>1));
+        $plugin_builder2 = FixtureBuilder::build('plugins', array('id'=>'8', 'folder_name'=>'test_plugin1',
+        'is_active'=>1));
 
         # init our dao
         $dao = new PluginOptionMySQLDAO();
         $builder1 = $this->buildOptions(1, 'test name', 'test option');
         $insert_id1 = $builder1->columns[ 'last_insert_id' ];
-        $builder2 = $this->buildOptions(2, 'test name2', 'test option2');
+        $builder2 = $this->buildOptions(7, 'test name2', 'test option2');
         $insert_id2 = $builder2->columns[ 'last_insert_id' ];
-        $builder3 = $this->buildOptions(2, 'test name3', 'test option3');
+        $builder3 = $this->buildOptions(7, 'test name3', 'test option3');
         $insert_id3 = $builder3->columns[ 'last_insert_id' ];
 
         // bad plugin id
@@ -158,12 +159,12 @@ class TestOfPluginOptionMySQLDAO extends ThinkUpUnitTestCase {
         // gets all options if plugin_id passed one more time
         $options = $dao->getOptions('test_plugin');
         $this->assertNotNull( $options );
-        $this->assertEqual(2, count($options));
+        $this->assertEqual(count($options), 2);
         $this->assertIsA($options[0], 'PluginOption');
-        $this->assertEqual($options[0]->plugin_id, 2);
+        $this->assertEqual($options[0]->plugin_id, 7);
         $this->assertEqual($options[0]->id, 3);
         $this->assertIsA($options[1], 'PluginOption');
-        $this->assertEqual($options[1]->plugin_id, 2);
+        $this->assertEqual($options[1]->plugin_id, 7);
         $this->assertEqual($options[1]->id, 4);
     }
 

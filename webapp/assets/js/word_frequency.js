@@ -6,7 +6,7 @@
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -142,6 +142,9 @@ var TUWordFrequency = function() {
 
         // show frequency div
         $('#word-frequency-div').show();
+        if(typeof(grid_search_on) != 'undefined' && grid_search_on == true) {
+            $('#word-frequency-div').hide();
+        }
 
         //pull in and clean post texts...
         var posts = $('.reply_text');
@@ -155,7 +158,7 @@ var TUWordFrequency = function() {
 
         // sort by count
         this.sorted_words = this.sort_words();
-
+        
         // show top 20 words sorted by frequency
         for(i = 0; i < this.sorted_words.length; i++) {
             if(i >= 20 ) {

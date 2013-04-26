@@ -4,11 +4,11 @@
  *
  * ThinkUp/tests/TestOfPostAPIController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -24,19 +24,18 @@
  * Test of PostAPIController
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Sam Rose
+ * @copyright 2009-2013 Gina Trapani, Sam Rose
  * @author Sam Rose <samwho@lbak.co.uk>
  */
 require_once dirname(__FILE__) . '/init.tests.php';
-require_once THINKUP_ROOT_PATH . 'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH . 'webapp/config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 
 class TestOfPostAPIController extends ThinkUpUnitTestCase {
 
     public function setUp() {
         parent::setUp();
         $config = Config::getInstance();
-        $this->prefix = $config->getValue( 'table_prefix');
         $this->builders = self::buildData();
     }
 
@@ -58,7 +57,17 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                             'avatar' => 'avatar.jpg',
                             'is_protected' => 0,
                             'follower_count' => 10,
-                            'last_updated' => '1/1/2005',
+                            'last_updated' => '2005-01-01 13:48:05',
+                            'network' => 'twitter'));
+
+        $builders[] = FixtureBuilder::build( 'users', array(
+                            'user_id' => 14,
+                            'user_name' => 'jane',
+                            'full_name' => 'jane mcnulty',
+                            'avatar' => 'avatar.jpg',
+                            'is_protected' => 0,
+                            'follower_count' => 10,
+                            'last_updated' => '2005-01-01 13:48:05',
                             'network' => 'twitter'));
 
         $builders[] = FixtureBuilder::build( 'users', array(
@@ -78,7 +87,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                             'is_protected' => 0,
                             'follower_count' => 15,
                             'network' => 'twitter',
-                            'last_updated' => '2010-04-02 13:45:55'));
+                            'last_updated' => '2010-03-02 13:45:55'));
 
         $builders[] = FixtureBuilder::build( 'users', array(
                             'user_id' => 20,
@@ -154,6 +163,13 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                             'is_public' => 0,
                             'network' => 'twitter'));
 
+        //public on originating network, private on TU
+        $builders[] = FixtureBuilder::build( 'instances', array(
+                            'network_user_id' => 14,
+                            'network_username' => 'jane',
+                            'is_public' => 0,
+                            'network' => 'twitter'));
+
         //Add straight text posts
         $counter = 0;
         while ($counter < 40) {
@@ -181,7 +197,8 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                                 'in_rt_of_user_id' => null,
                                 'in_reply_to_post_id' => null,
                                 'in_retweet_of_post_id' => null,
-                                'is_geo_encoded' => 0));
+                                'is_geo_encoded' => 0,
+                                'is_protected'=>0));
             $counter++;
         }
 
@@ -191,7 +208,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
             $post_id = $counter + 40;
             $pseudo_minute = str_pad($counter, 2, "0", STR_PAD_LEFT);
             $source = rand(0,1) == 0 ? 'Flickr' : 'Picasa';
-            $protected = (($counter % 2) == 1);
+            $protected =  (($counter % 2) == 1)?1:0;
 
             $builders[] = FixtureBuilder::build( 'posts', array(
                                 'post_id' => $post_id,
@@ -216,9 +233,8 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                                 'expanded_url' => 'http://example.com/' . $counter . '.jpg',
                                 'title' => '',
                                 'clicks' => 0,
-                                'post_id' => $post_id,
-                                'is_image' => 1));
-
+                                'post_key' => $post_id,
+                                'image_src' => 'image.png'));
             $counter++;
         }
 
@@ -226,7 +242,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         $counter = 0;
         while ($counter < 40) {
             $post_id = $counter + 80;
-            $pseudo_minute = str_pad(($counter), 2, "0", STR_PAD_LEFT);
+            $pseudo_minute = str_pad($counter, 2, "0", STR_PAD_LEFT);
             $builders[] = FixtureBuilder::build(
                             'posts', array( 'post_id' => $post_id,
                                 'author_user_id' => 19,
@@ -240,15 +256,15 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                                 'pub_date' => '2006-03-01 00:' . $pseudo_minute . ':00',
                                 'reply_count_cache' => 0,
                                 'retweet_count_cache' => 0,
-                                'network' => 'twitter'));
-
+                                'network' => 'twitter',
+                                'is_protected'=>0));
             $builders[] = FixtureBuilder::build( 'links', array(
-                                'url' => 'http://example.com/' . $counter,
+                                'url' => 'http://example.com/' . $post_id.'',
                                 'explanded_url' => 'http://example.com/' . $counter . '.html',
-                                'title' => 'Link $counter',
+                                'title' => 'Link '.$counter,
                                 'clicks' => 0,
-                                'post_id' => $post_id,
-                                'is_image' => 0));
+                                'post_key' => $post_id,
+                                'image_src' => ''));
 
             $counter++;
         }
@@ -272,7 +288,8 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                                     'in_rt_of_user_id' => null,
                                     'post_text' => 'Hey @ev and @jack thanks for founding Twitter post ' . $counter,
                                     'pub_date' => '2006-03-01 00:' . $pseudo_minute . ':00',
-                                    'location' => 'New Delhi'));
+                                    'location' => 'New Delhi',
+                                    'is_protected'=>0));
             } else {
                 $builders[] = FixtureBuilder::build( 'posts', array(
                                     'post_id' => $post_id,
@@ -287,7 +304,8 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                                     'in_rt_of_user_id' => null,
                                     'post_text' => 'Hey @ev and @jack should fix Twitter - post ' . $counter,
                                     'pub_date' => '2006-03-01 00:' . $pseudo_minute . ':00',
-                                    'place' => 'New Delhi'));
+                                    'place' => 'New Delhi',
+                                    'is_protected'=>0));
             }
             $counter++;
         }
@@ -364,7 +382,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                             'title' => 'Link 1',
                             'clicks' => 0,
                             'post_id' => 133,
-                            'is_image' => 0));
+                            'image_src' => ''));
 
         //Add retweets of a specific post
         //original post
@@ -415,7 +433,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                             'network' => 'twitter',
                             'post_text' => 'RT @quoter Be liberal in what you accept and conservative in what you send',
                             'source' => 'web',
-                            'pub_date' => '2006-03-01 00:00:00',
+                            'pub_date' => '2006-03-01 00:01:00',
                             'reply_count_cache' => 0,
                             'retweet_count_cache' => 0,
                             'old_retweet_count_cache' => 0,
@@ -436,7 +454,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                             'network' => 'twitter',
                             'post_text' => 'RT @quoter Be liberal in what you accept and conservative in what you send',
                             'source' => 'web',
-                            'pub_date' => '2006-03-01 00:00:00',
+                            'pub_date' => '2006-03-01 00:02:00',
                             'reply_count_cache' => 0,
                             'retweet_count_cache' => 0,
                             'old_retweet_count_cache' => 0,
@@ -456,7 +474,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                             'network' => 'twitter',
                             'post_text' => 'RT @quoter Be liberal in what you accept and conservative in what you send',
                             'source' => 'web',
-                            'pub_date' => '2006-03-01 00:00:00',
+                            'pub_date' => '2006-03-01 00:03:00',
                             'reply_count_cache' => 0,
                             'retweet_count_cache' => 0,
                             'old_retweet_count_cache' => 0,
@@ -504,7 +522,8 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                             'reply_count_cache' => 0,
                             'retweet_count_cache' => 0,
                             'in_reply_to_user_id' => 21,
-                            'in_reply_to_post_id' => 132));
+                            'in_reply_to_post_id' => 132,
+                            'is_protected'=>0));
 
         //Add user exchange
         $builders[] = FixtureBuilder::build( 'posts', array(
@@ -538,7 +557,8 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                             'reply_count_cache' => 0,
                             'retweet_count_cache' => 0,
                             'in_reply_to_user_id' => 20,
-                            'in_reply_to_post_id' => 139));
+                            'in_reply_to_post_id' => 139,
+                            'is_protected'=>0));
 
         //Add posts replying to post not in the system
         $builders[] = FixtureBuilder::build( 'posts', array(
@@ -555,7 +575,8 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                             'old_retweet_count_cache' => 0,
                             'in_rt_of_user_id' => null,
                             'in_reply_to_user_id' => 20,
-                            'in_reply_to_post_id' => 250));
+                            'in_reply_to_post_id' => 250,
+                            'is_protected'=>0));
 
         $builders[] = FixtureBuilder::build( 'posts', array(
                             'post_id' => 142,
@@ -571,7 +592,8 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                             'old_retweet_count_cache' => 0,
                             'in_rt_of_user_id' => null,
                             'in_reply_to_user_id' => 20,
-                            'in_reply_to_post_id' => 251));
+                            'in_reply_to_post_id' => 251,
+                            'is_protected'=>0));
 
         //Add post by instance not on public timeline
         $builders[] = FixtureBuilder::build( 'posts', array(
@@ -584,7 +606,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                             'old_retweet_count_cache' => 0,
                             'in_rt_of_user_id' => null,
                             'source' => 'web',
-                            'pub_date' => '2006-03-01 00:00:00'));
+                            'pub_date' => '2006-03-01 12:00:00'));
 
         //Add replies to specific post
         $builders[] = FixtureBuilder::build( 'posts', array(
@@ -705,31 +727,53 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
                             'in_reply_to_user_id' => 13,
                             'is_protected' => 0));
 
+        //protected post
+        $builders[] = FixtureBuilder::build( 'posts', array(
+                            'post_id' => 152,
+                            'author_user_id' => 21,
+                            'author_username' => 'user2',
+                            'author_fullname' => 'User 2',
+                            'network' => 'twitter',
+                            'post_text' => 'Protect me',
+                            'source' => 'web',
+                            'pub_date' => '2006-03-01 00:02:00',
+                            'reply_count_cache' => 0,
+                            'retweet_count_cache' => 0,
+                            'old_retweet_count_cache' => 0,
+                            'in_rt_of_user_id' => null,
+                            'in_reply_to_post_id' => null,
+                            'in_reply_to_user_id' => null,
+                            'is_protected' => 1));
         return $builders;
     }
 
     public function testPost() {
-        $_GET['type'] = 'post';
-        $_GET['post_id'] = 137;
-        $controller = new PostAPIController(true);
-        $output = json_decode($controller->go());
+        $config = Config::getInstance();
+        $config->setValue('timezone', 'America/Los_Angeles');
 
+        $_GET['type'] = 'post';
+        $_GET['post_id'] = '137';
+        $_GET['network'] = 'twitter';
+        $controller = new PostAPIController(true);
+        $output = $controller->go();
+        $this->debug($output);
+        //sleep(1000);
+        $output = json_decode($output);
         // test the object type is correct
-        $this->assertTrue(is_a($output, 'stdClass'));
+        $this->assertTrue($output instanceof stdClass);
         $this->assertEqual($output->protected, false);
 
         // test that the correct tweet was retrieved
-        $this->assertEqual($output->id, 137, "Incorrect post fetched.");
+        $this->assertEqual($output->id, '137', "Incorrect post fetched.");
 
         $this->assertEqual(sizeof($output->coordinates->coordinates), 2,
-        "Size of coordinates is too big or too small. Is " . sizeof($output->coordinates->coordinates) .
-        " when it should be 2.");
+     "Size of coordinates is too big or too small. Is " . sizeof($output->coordinates->coordinates) .
+     " when it should be 2.");
 
         $this->assertEqual($output->thinkup->is_geo_encoded, 1);
-        $this->assertEqual($output->coordinates, $output->geo,
-                "Geo and coordinates are meant to be exactly the same.");
+        $this->assertEqual($output->coordinates, $output->geo, "Geo and coordinates are meant to be exactly the same.");
 
-        $this->assertEqual($output->user->last_updated, '2010-04-02 13:45:55');
+        $this->assertEqual($output->user->last_updated, '2010-03-02 13:45:55');
 
         // test trim user
         $_GET['trim_user'] = true;
@@ -753,21 +797,39 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         $this->assertTrue(array_search($prefix . "posts", $installer_dao->getTables()) !== false);
     }
 
+    public function testPostProtectedOnNetwork() {
+        $_GET['type'] = 'post';
+        $_GET['post_id'] = '152';
+        $_GET['network'] = 'twitter';
+        $controller = new PostAPIController(true);
+        $output = $controller->go();
+        $this->debug($output);
+        //sleep(1000);
+        $output = json_decode($output);
+        // test that 0 data was returned
+        $this->assertEqual(sizeof($output), 1);
+        $this->assertEqual($output->error->type, "PostNotFoundException");
+        $this->assertEqual($output->error->message, "The requested post data is not available.");
+    }
+
     public function testPostRetweets() {
         $_GET['type'] = 'post_retweets';
-        $_GET['post_id'] = 134;
+        $_GET['post_id'] = '134';
         $controller = new PostAPIController(true);
         $output = json_decode($controller->go());
 
         // test the object type is correct
         $this->assertTrue(is_array($output));
         foreach($output as $post) {
-            $this->assertTrue(is_a($post, 'stdClass'));
+            $this->assertTrue($post instanceof stdClass);
             $this->assertEqual($post->protected, false);
-            $this->assertEqual($post->retweeted_status->id, 134);
+            $this->assertEqual($post->retweeted_status->id, '134');
         }
 
         $this->assertEqual(sizeof($output), 3);
+        if (sizeof($output) != 3) {
+            print_r($output);
+        }
 
         // test order_by
         $_GET['order_by'] = 'location';
@@ -828,7 +890,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         $controller = new PostAPIController(true);
         $output = json_decode($controller->go());
         $this->assertEqual(sizeof($output), 1);
-        $this->assertEqual($output[0]->id, 135);
+        $this->assertEqual($output[0]->id, 137);
 
         $_GET['page'] = 2;
         $controller = new PostAPIController(true);
@@ -840,7 +902,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         $controller = new PostAPIController(true);
         $output = json_decode($controller->go());
         $this->assertEqual(sizeof($output), 1);
-        $this->assertEqual($output[0]->id, 137);
+        $this->assertEqual($output[0]->id, 135);
 
         // test trim user
         unset($_GET['count'], $_GET['page']);
@@ -876,7 +938,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         // test the object type is correct
         $this->assertTrue(is_array($output));
         foreach($output as $post) {
-            $this->assertTrue(is_a($post, 'stdClass'));
+            $this->assertTrue($post instanceof stdClass);
             $this->assertEqual($post->protected, false);
         }
 
@@ -960,6 +1022,81 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         $this->assertTrue(array_search($prefix . "posts", $installer_dao->getTables()) !== false);
     }
 
+    public function testPostRepliesInRange() {
+        $_GET['type'] = 'post_replies_in_range';
+        $_GET['post_id'] = 41;
+        $_GET['from'] = '2006-02-01 00:00:00';
+        $_GET['until'] = '2006-03-02 00:59:59';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+
+        // test the object type is correct
+        $this->assertTrue(is_array($output));
+        foreach($output as $post) {
+            $this->assertTrue($post instanceof stdClass);
+            $this->assertEqual($post->protected, false);
+            /**
+             * The following two assertions evaluate differently depending on whether your MySQL server supports
+             * SET timezone statement in PDODAO::connect function
+             */
+            $this->assertTrue(strtotime($post->created_at) >= strtotime($_GET['from']));
+            $this->assertTrue(strtotime($post->created_at) < strtotime($_GET['until']));
+        }
+
+        $this->assertEqual(sizeof($output), 2);
+        $this->assertEqual($output[0]->id, 131);
+        $this->assertEqual($output[1]->id, 133);
+
+        // test order_by
+        $_GET['order_by'] = 'location';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+
+        $distance = $output[0]->reply_retweet_distance;
+        foreach ($output as $post) {
+            $this->assertTrue($post->reply_retweet_distance >= $distance);
+            $distance = $post->reply_retweet_distance;
+        }
+
+        // test unit
+        $_GET['post_id'] = 41;
+        $_GET['unit'] = 'mi';
+        $controller = new PostAPIController(true);
+        $output_mi = json_decode($controller->go());
+        $_GET['unit'] = 'km';
+        $controller = new PostAPIController(true);
+        $output_km = json_decode($controller->go());
+
+        foreach ($output_km as $key=>$post) {
+            $this->assertEqual($output_mi[$key]->reply_retweet_distance,
+            round($output_km[$key]->reply_retweet_distance/1.609));
+        }
+
+        // test trim user
+        unset($_GET['count'], $_GET['page']);
+        $_GET['trim_user'] = true;
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $this->assertEqual(sizeof($output), 2);
+
+        foreach($output as $post) {
+            $this->assertEqual(sizeof($post->user), 1);
+        }
+
+        // test sql injection
+        $_GET = array('type' => 'post_replies');
+        $prefix = Config::getInstance()->getValue('table_prefix');
+        foreach(get_object_vars($controller) as $key => $value) {
+            if ($key == 'type' || $key == 'app_session') continue;
+            $_GET[$key] = "'; DROP TABLE " . $prefix . "posts--";
+            $controller = new PostAPIController(true);
+            $output = json_decode($controller->go());
+            unset($_GET[$key]);
+        }
+        $installer_dao = DAOFactory::getDAO('InstallerDAO');
+        $this->assertTrue(array_search($prefix . "posts", $installer_dao->getTables()) !== false);
+    }
+
     public function testRelatedPosts() {
         $_GET['type'] = 'related_posts';
         $_GET['post_id'] = 41;
@@ -969,7 +1106,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         // test the object type is correct
         $this->assertTrue(is_array($output));
         foreach($output as $post) {
-            $this->assertTrue(is_a($post, 'stdClass'));
+            $this->assertTrue($post instanceof stdClass);
             $this->assertEqual($post->protected, false);
         }
 
@@ -1073,7 +1210,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         // test the object type is correct
         $this->assertTrue(is_array($output));
         foreach($output as $post) {
-            $this->assertTrue(is_a($post, 'stdClass'));
+            $this->assertTrue($post instanceof stdClass);
             $this->assertEqual($post->protected, false);
         }
 
@@ -1151,7 +1288,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         // test the object type is correct
         $this->assertTrue(is_array($output));
         foreach($output as $post) {
-            $this->assertTrue(is_a($post, 'stdClass'));
+            $this->assertTrue($post instanceof stdClass);
             $this->assertEqual($post->protected, false);
         }
 
@@ -1227,7 +1364,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         // test the object type is correct
         $this->assertTrue(is_array($output));
         foreach($output as $post) {
-            $this->assertTrue(is_a($post, 'stdClass'));
+            $this->assertTrue($post instanceof stdClass);
             $this->assertEqual($post->protected, false);
         }
 
@@ -1265,26 +1402,6 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         foreach ($output as $post) {
             $this->assertTrue(strtotime($post->created_at) >= $date);
             $date = strtotime($post->created_at);
-        }
-
-        $_GET['order_by'] = 'post_id';
-        $_GET['direction'] = 'DESC';
-        $controller = new PostAPIController(true);
-        $output = json_decode($controller->go());
-        $id = $output[0]->id;
-        foreach ($output as $post) {
-            $this->assertTrue($post->id <= $id);
-            $id = $post->id;
-        }
-
-        $_GET['order_by'] = 'post_id';
-        $_GET['direction'] = 'ASC';
-        $controller = new PostAPIController(true);
-        $output = json_decode($controller->go());
-        $id = $output[0]->id;
-        foreach ($output as $post) {
-            $this->assertTrue($post->id >= $id);
-            $id = $post->id;
         }
 
         $_GET['order_by'] = 'source';
@@ -1390,6 +1507,31 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         $this->assertTrue(array_search($prefix . "posts", $installer_dao->getTables()) !== false);
     }
 
+    public function testUserPostsProtectedOnNetwork() {
+        $_GET['type'] = 'user_posts';
+        $_GET['user_id'] = 24;
+        $controller = new PostAPIController(true);
+        $output = $controller->go();
+        $this->debug($output);
+        $output = json_decode($output);
+        $this->assertEqual(sizeof($output), 1);
+        $this->assertEqual($output->error->type, "UserNotFoundException");
+        $this->assertEqual($output->error->message, "The requested user data is not available.");
+    }
+
+    public function testUserPostsProtectedInThinkUp() {
+        //user is public in users table, protected in instances table
+        $_GET['type'] = 'user_posts';
+        $_GET['user_id'] = 14;
+        $controller = new PostAPIController(true);
+        $output = $controller->go();
+        $this->debug($output);
+        $output = json_decode($output);
+        $this->assertEqual(sizeof($output), 1);
+        $this->assertEqual($output->error->type, "UserNotFoundException");
+        $this->assertEqual($output->error->message, "The requested user data is not available.");
+    }
+
     public function testUserMentions() {
         $_GET['type'] = 'user_mentions';
         $_GET['user_id'] = 18;
@@ -1400,7 +1542,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         // test the object type is correct
         $this->assertTrue(is_array($output));
         foreach($output as $post) {
-            $this->assertTrue(is_a($post, 'stdClass'));
+            $this->assertTrue($post instanceof stdClass);
             $this->assertEqual($post->protected, false);
         }
 
@@ -1450,26 +1592,6 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         foreach ($output as $post) {
             $this->assertTrue(strtotime($post->created_at) >= $date);
             $date = strtotime($post->created_at);
-        }
-
-        $_GET['order_by'] = 'post_id';
-        $_GET['direction'] = 'DESC';
-        $controller = new PostAPIController(true);
-        $output = json_decode($controller->go());
-        $id = $output[0]->id;
-        foreach ($output as $post) {
-            $this->assertTrue($post->id <= $id);
-            $id = $post->id;
-        }
-
-        $_GET['order_by'] = 'post_id';
-        $_GET['direction'] = 'ASC';
-        $controller = new PostAPIController(true);
-        $output = json_decode($controller->go());
-        $id = $output[0]->id;
-        foreach ($output as $post) {
-            $this->assertTrue($post->id >= $id);
-            $id = $post->id;
         }
 
         $_GET['order_by'] = 'source';
@@ -1587,6 +1709,193 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         $this->assertTrue(array_search($prefix . "posts", $installer_dao->getTables()) !== false);
     }
 
+    public function testUserMentionsInRange() {
+        $_GET['type'] = 'user_mentions_in_range';
+        $_GET['user_id'] = 18;
+        $_GET['from'] = '2006-03-01 00:00:00';
+        $_GET['until'] = '2006-03-02 00:59:59';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+
+        // test the object type is correct
+        $this->assertTrue(is_array($output));
+        foreach($output as $post) {
+            $this->assertTrue($post instanceof stdClass);
+            $this->assertEqual($post->protected, false);
+            /**
+             * The following two assertions evaluate differently depending on whether your MySQL server supports
+             * SET timezone statement in PDODAO::connect function
+             */
+            $this->assertTrue(strtotime($post->created_at) >= strtotime($_GET['from']));
+            $this->assertTrue(strtotime($post->created_at) < strtotime($_GET['until']));
+        }
+
+        // test order_by
+        $_GET['order_by'] = 'date';
+        $_GET['direction'] = 'DESC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $date = strtotime($output[0]->created_at);
+        foreach ($output as $post) {
+            $this->assertTrue(strtotime($post->created_at) <= $date);
+            $date = strtotime($post->created_at);
+        }
+
+        $_GET['order_by'] = 'date';
+        $_GET['direction'] = 'ASC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $date = strtotime($output[0]->created_at);
+        foreach ($output as $post) {
+            $this->assertTrue(strtotime($post->created_at) >= $date);
+            $date = strtotime($post->created_at);
+        }
+
+        $_GET['order_by'] = 'source';
+        $_GET['direction'] = 'DESC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->source;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->source, $str) <= 0);
+            $str = $post->source;
+        }
+
+        $_GET['order_by'] = 'source';
+        $_GET['direction'] = 'ASC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->source;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->source, $str) >= 0);
+            $str = $post->source;
+        }
+
+        $_GET['order_by'] = 'follower_count';
+        $_GET['direction'] = 'DESC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $count = $output[0]->user->followers_count;
+        foreach ($output as $post) {
+            $this->debug("Count ".$post->user->followers_count . ' <= ' . $count);
+            $this->assertTrue($post->user->followers_count <= $count);
+            $count = $post->user->followers_count;
+        }
+
+        $_GET['order_by'] = 'follower_count';
+        $_GET['direction'] = 'ASC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $count = $output[0]->user->followers_count;
+        foreach ($output as $post) {
+            $this->debug($post->id . " - Count ".$post->user->followers_count . ' >= ' . $count);
+            $this->assertTrue($post->user->followers_count >= $count);
+            $count = $post->user->followers_count;
+        }
+
+        $_GET['order_by'] = 'post_text';
+        $_GET['direction'] = 'DESC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->text;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->text, $str) <= 0);
+            $str = $post->text;
+        }
+
+        $_GET['order_by'] = 'post_text';
+        $_GET['direction'] = 'ASC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->text;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->text, $str) >= 0);
+            $str = $post->text;
+        }
+
+        $_GET['order_by'] = 'author_username';
+        $_GET['direction'] = 'DESC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->user->screen_name;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->user->screen_name, $str) <= 0);
+            $str = $post->user->screen_name;
+        }
+
+        $_GET['order_by'] = 'author_username';
+        $_GET['direction'] = 'ASC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->user->screen_name;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->user->screen_name, $str) >= 0);
+            $str = $post->user->screen_name;
+        }
+
+        // test tweet entities
+        $_GET['include_entities'] = true;
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $this->assertEqual(sizeof($output), 2);
+
+        // test trim user
+        unset($_GET['include_entities']);
+        $_GET['trim_user'] = true;
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $this->assertEqual(sizeof($output), 2);
+        $this->assertEqual(sizeof($output[0]->user), 1);
+
+        // test sql injection
+        $_GET = array('type' => 'user_mentions_in_range');
+        $prefix = Config::getInstance()->getValue('table_prefix');
+        foreach(get_object_vars($controller) as $key => $value) {
+            if ($key == 'type' || $key == 'app_session') continue;
+            $_GET[$key] = "'; DROP TABLE " . $prefix . "posts--";
+            $controller = new PostAPIController(true);
+            $output = json_decode($controller->go());
+            unset($_GET[$key]);
+        }
+        $installer_dao = DAOFactory::getDAO('InstallerDAO');
+        $this->assertTrue(array_search($prefix . "posts", $installer_dao->getTables()) !== false);
+
+        // test posts contain a links object
+        $_GET['type'] = 'user_mentions_in_range';
+        $_GET['user_id'] = 18;
+        $_GET['from'] = '2006-03-01 00:01:00';
+        $_GET['until'] = '2006-03-01 00:23:01';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        foreach($output as $post) {
+            $this->assertTrue($post->links instanceof stdClass);
+        }
+    }
+
+    public function testUserMentionsProtectedOnNetwork() {
+        $_GET['type'] = 'user_mentions';
+        $_GET['user_id'] = 24;
+        $controller = new PostAPIController(true);
+        $output = $controller->go();
+        $this->debug($output);
+        $output = json_decode($output);
+        $this->assertEqual(sizeof($output), 1);
+        $this->assertEqual($output->error->type, "UserNotFoundException");
+        $this->assertEqual($output->error->message, "The requested user data is not available.");
+    }
+
+    public function testUserMentionsProtectedInThinkUp() {
+        $_GET['type'] = 'user_mentions';
+        $_GET['user_id'] = 14;
+        $controller = new PostAPIController(true);
+        $output = $controller->go();
+        $this->debug($output);
+        $output = json_decode($output);
+        $this->assertEqual(sizeof($output), 1);
+        $this->assertEqual($output->error->type, "UserNotFoundException");
+        $this->assertEqual($output->error->message, "The requested user data is not available.");
+    }
+
     public function testUserReplies() {
         $_GET['type'] = 'user_replies';
         $_GET['user_id'] = 18;
@@ -1596,7 +1905,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         // test the object type is correct
         $this->assertTrue(is_array($output));
         foreach($output as $post) {
-            $this->assertTrue(is_a($post, 'stdClass'));
+            $this->assertTrue($post instanceof stdClass);
             $this->assertEqual($post->protected, false);
             $this->assertEqual($post->in_reply_to_user_id, 18);
         }
@@ -1651,24 +1960,167 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
             $date = strtotime($post->created_at);
         }
 
-        $_GET['order_by'] = 'post_id';
+        $_GET['order_by'] = 'source';
         $_GET['direction'] = 'DESC';
         $controller = new PostAPIController(true);
         $output = json_decode($controller->go());
-        $id = $output[0]->id;
+        $str = $output[0]->source;
         foreach ($output as $post) {
-            $this->assertTrue($post->id <= $id);
-            $id = $post->id;
+            $this->assertTrue(strcmp($post->source, $str) <= 0);
+            $str = $post->source;
         }
 
-        $_GET['order_by'] = 'post_id';
+        $_GET['order_by'] = 'source';
         $_GET['direction'] = 'ASC';
         $controller = new PostAPIController(true);
         $output = json_decode($controller->go());
-        $id = $output[0]->id;
+        $str = $output[0]->source;
         foreach ($output as $post) {
-            $this->assertTrue($post->id >= $id);
-            $id = $post->id;
+            $this->assertTrue(strcmp($post->source, $str) >= 0);
+            $str = $post->source;
+        }
+
+        $_GET['order_by'] = 'follower_count';
+        $_GET['direction'] = 'DESC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $count = $output[0]->user->followers_count;
+        foreach ($output as $post) {
+            $this->debug("Count ".$post->user->followers_count);
+            $this->assertTrue($post->user->followers_count <= $count);
+            $count = $post->user->followers_count;
+        }
+
+        $_GET['order_by'] = 'follower_count';
+        $_GET['direction'] = 'ASC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $count = $output[0]->user->followers_count;
+        foreach ($output as $post) {
+            $this->assertTrue($post->user->followers_count >= $count);
+            $count = $post->user->followers_count;
+        }
+
+        $_GET['order_by'] = 'post_text';
+        $_GET['direction'] = 'DESC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->text;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->text, $str) <= 0);
+            $str = $post->text;
+        }
+
+        $_GET['order_by'] = 'post_text';
+        $_GET['direction'] = 'ASC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->text;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->text, $str) >= 0);
+            $str = $post->text;
+        }
+
+        $_GET['order_by'] = 'author_username';
+        $_GET['direction'] = 'DESC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->user->screen_name;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->user->screen_name, $str) <= 0);
+            $str = $post->user->screen_name;
+        }
+
+        $_GET['order_by'] = 'author_username';
+        $_GET['direction'] = 'ASC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->user->screen_name;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->user->screen_name, $str) >= 0);
+            $str = $post->user->screen_name;
+        }
+
+        // test sql injection
+        $_GET = array('type' => 'user_replies');
+        $prefix = Config::getInstance()->getValue('table_prefix');
+        foreach(get_object_vars($controller) as $key => $value) {
+            if ($key == 'type' || $key == 'app_session') continue;
+            $_GET[$key] = "'; DROP TABLE " . $prefix . "posts--";
+            $controller = new PostAPIController(true);
+            $output = json_decode($controller->go());
+            unset($_GET[$key]);
+        }
+        $installer_dao = DAOFactory::getDAO('InstallerDAO');
+        $this->assertTrue(array_search($prefix . "posts", $installer_dao->getTables()) !== false);
+    }
+
+    public function testUserRepliesProtectedOnNetwork() {
+        $_GET['type'] = 'user_replies';
+        $_GET['user_id'] = 24;
+        $controller = new PostAPIController(true);
+        $output = $controller->go();
+        $this->debug($output);
+        $output = json_decode($output);
+        $this->assertEqual(sizeof($output), 1);
+        $this->assertEqual($output->error->type, "UserNotFoundException");
+        $this->assertEqual($output->error->message, "The requested user data is not available.");
+    }
+
+    public function testUserRepliesProtectedInThinkUp() {
+        $_GET['type'] = 'user_replies';
+        $_GET['user_id'] = 14;
+        $controller = new PostAPIController(true);
+        $output = $controller->go();
+        $this->debug($output);
+        $output = json_decode($output);
+        $this->assertEqual(sizeof($output), 1);
+        $this->assertEqual($output->error->type, "UserNotFoundException");
+        $this->assertEqual($output->error->message, "The requested user data is not available.");
+    }
+
+    public function testUserRepliesInRange() {
+        $_GET['type'] = 'user_replies_in_range';
+        $_GET['user_id'] = 18;
+        $_GET['from'] = '2006-02-01 00:00:00';
+        $_GET['until'] = '2006-03-02 00:59:59';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        // test the object type is correct
+        $this->assertTrue(is_array($output));
+        foreach($output as $post) {
+            $this->assertTrue($post instanceof stdClass);
+            $this->assertEqual($post->protected, false);
+            $this->assertEqual($post->in_reply_to_user_id, 18);
+            /**
+             * The following two assertions evaluate differently depending on whether your MySQL server supports
+             * SET timezone statement in PDODAO::connect function
+             */
+            $this->assertTrue(strtotime($post->created_at) >= strtotime($_GET['from']));
+            $this->assertTrue(strtotime($post->created_at) < strtotime($_GET['until']));
+        }
+
+        $this->assertEqual(sizeof($output), 2);
+
+        // test order_by
+        $_GET['order_by'] = 'date';
+        $_GET['direction'] = 'DESC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $date = strtotime($output[0]->created_at);
+        foreach ($output as $post) {
+            $this->assertTrue(strtotime($post->created_at) <= $date);
+            $date = strtotime($post->created_at);
+        }
+
+        $_GET['order_by'] = 'date';
+        $_GET['direction'] = 'ASC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $date = strtotime($output[0]->created_at);
+        foreach ($output as $post) {
+            $this->assertTrue(strtotime($post->created_at) >= $date);
+            $date = strtotime($post->created_at);
         }
 
         $_GET['order_by'] = 'source';
@@ -1775,7 +2227,7 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         // test the object type is correct
         $this->assertTrue(is_array($output));
         foreach($output as $post) {
-            $this->assertTrue(is_a($post, 'stdClass'));
+            $this->assertTrue($post instanceof stdClass);
             $this->assertEqual($post->protected, false);
             $this->assertEqual(preg_match('/\?/', $post->text), 1);
         }
@@ -1826,26 +2278,6 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         foreach ($output as $post) {
             $this->assertTrue(strtotime($post->created_at) >= $date);
             $date = strtotime($post->created_at);
-        }
-
-        $_GET['order_by'] = 'post_id';
-        $_GET['direction'] = 'DESC';
-        $controller = new PostAPIController(true);
-        $output = json_decode($controller->go());
-        $id = $output[0]->id;
-        foreach ($output as $post) {
-            $this->assertTrue($post->id <= $id);
-            $id = $post->id;
-        }
-
-        $_GET['order_by'] = 'post_id';
-        $_GET['direction'] = 'ASC';
-        $controller = new PostAPIController(true);
-        $output = json_decode($controller->go());
-        $id = $output[0]->id;
-        foreach ($output as $post) {
-            $this->assertTrue($post->id >= $id);
-            $id = $post->id;
         }
 
         $_GET['order_by'] = 'source';
@@ -1942,19 +2374,24 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         $this->assertTrue(array_search($prefix . "posts", $installer_dao->getTables()) !== false);
     }
 
-    public function testUserPostsInRange() {
-        $_GET['type'] = 'user_posts_in_range';
-        $_GET['user_id'] = 18;
-        $_GET['from'] = '2006-01-02 00:00:00';
-        $_GET['until'] = '2006-01-02 00:59:59';
+    public function testUserQuestionsInRange() {
+        $_GET['type'] = 'user_questions_in_range';
+        $_GET['user_id'] = 20;
+        $_GET['from'] = '2006-03-01 00:00:00';
+        $_GET['until'] = '2006-03-02 00:59:59';
         $controller = new PostAPIController(true);
         $output = json_decode($controller->go());
 
         // test the object type is correct
         $this->assertTrue(is_array($output));
         foreach($output as $post) {
-            $this->assertTrue(is_a($post, 'stdClass'));
+            $this->assertTrue($post instanceof stdClass);
             $this->assertEqual($post->protected, false);
+            $this->assertEqual(preg_match('/\?/', $post->text), 1);
+            /**
+             * The following two assertions evaluate differently depending on whether your MySQL server supports
+             * SET timezone statement in PDODAO::connect function
+             */
             $this->assertTrue(strtotime($post->created_at) >= strtotime($_GET['from']));
             $this->assertTrue(strtotime($post->created_at) < strtotime($_GET['until']));
         }
@@ -1980,24 +2417,164 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
             $date = strtotime($post->created_at);
         }
 
-        $_GET['order_by'] = 'post_id';
+        $_GET['order_by'] = 'source';
         $_GET['direction'] = 'DESC';
         $controller = new PostAPIController(true);
         $output = json_decode($controller->go());
-        $id = $output[0]->id;
+        $str = $output[0]->source;
         foreach ($output as $post) {
-            $this->assertTrue($post->id <= $id);
-            $id = $post->id;
+            $this->assertTrue(strcmp($post->source, $str) <= 0);
+            $str = $post->source;
         }
 
-        $_GET['order_by'] = 'post_id';
+        $_GET['order_by'] = 'source';
         $_GET['direction'] = 'ASC';
         $controller = new PostAPIController(true);
         $output = json_decode($controller->go());
-        $id = $output[0]->id;
+        $str = $output[0]->source;
         foreach ($output as $post) {
-            $this->assertTrue($post->id >= $id);
-            $id = $post->id;
+            $this->assertTrue(strcmp($post->source, $str) >= 0);
+            $str = $post->source;
+        }
+
+        $_GET['order_by'] = 'follower_count';
+        $_GET['direction'] = 'DESC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $count = $output[0]->user->followers_count;
+        foreach ($output as $post) {
+            $this->assertTrue($post->user->followers_count <= $count);
+            $count = $post->user->followers_count;
+        }
+
+        $_GET['order_by'] = 'follower_count';
+        $_GET['direction'] = 'ASC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $count = $output[0]->user->followers_count;
+        foreach ($output as $post) {
+            $this->assertTrue($post->user->followers_count >= $count);
+            $count = $post->user->followers_count;
+        }
+
+        $_GET['order_by'] = 'post_text';
+        $_GET['direction'] = 'DESC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->text;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->text, $str) <= 0);
+            $str = $post->text;
+        }
+
+        $_GET['order_by'] = 'post_text';
+        $_GET['direction'] = 'ASC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->text;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->text, $str) >= 0);
+            $str = $post->text;
+        }
+
+        $_GET['order_by'] = 'author_username';
+        $_GET['direction'] = 'DESC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->user->screen_name;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->user->screen_name, $str) <= 0);
+            $str = $post->user->screen_name;
+        }
+
+        $_GET['order_by'] = 'author_username';
+        $_GET['direction'] = 'ASC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $str = $output[0]->user->screen_name;
+        foreach ($output as $post) {
+            $this->assertTrue(strcmp($post->user->screen_name, $str) >= 0);
+            $str = $post->user->screen_name;
+        }
+
+        // test sql injection
+        $_GET = array('type' => 'user_questions');
+        $prefix = Config::getInstance()->getValue('table_prefix');
+        foreach(get_object_vars($controller) as $key => $value) {
+            if ($key == 'type' || $key == 'app_session') continue;
+            $_GET[$key] = "'; DROP TABLE " . $prefix . "posts--";
+            $controller = new PostAPIController(true);
+            $output = json_decode($controller->go());
+            unset($_GET[$key]);
+        }
+        $installer_dao = DAOFactory::getDAO('InstallerDAO');
+        $this->assertTrue(array_search($prefix . "posts", $installer_dao->getTables()) !== false);
+    }
+
+    public function testUserQuestionsProtectedOnNetwork() {
+        $_GET['type'] = 'user_questions';
+        $_GET['user_id'] = 24;
+        $controller = new PostAPIController(true);
+        $output = $controller->go();
+        $this->debug($output);
+        $output = json_decode($output);
+        $this->assertEqual(sizeof($output), 1);
+        $this->assertEqual($output->error->type, "UserNotFoundException");
+        $this->assertEqual($output->error->message, "The requested user data is not available.");
+    }
+
+    public function testUserQuestionsProtectedInThinkUp() {
+        $_GET['type'] = 'user_questions';
+        $_GET['user_id'] = 14;
+        $controller = new PostAPIController(true);
+        $output = $controller->go();
+        $this->debug($output);
+        $output = json_decode($output);
+        $this->assertEqual(sizeof($output), 1);
+        $this->assertEqual($output->error->type, "UserNotFoundException");
+        $this->assertEqual($output->error->message, "The requested user data is not available.");
+    }
+
+    public function testUserPostsInRange() {
+        $_GET['type'] = 'user_posts_in_range';
+        $_GET['user_id'] = 18;
+        $_GET['from'] = '2006-01-02 00:00:00';
+        $_GET['until'] = '2006-01-02 00:59:59';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+
+        // test the object type is correct
+        $this->assertTrue(is_array($output));
+        foreach($output as $post) {
+            $this->assertTrue($post instanceof stdClass);
+            $this->assertFalse($post->protected);
+            /**
+             * The following two assertions evaluate differently depending on whether your MySQL server supports
+             * SET timezone statement in PDODAO::connect function
+             */
+            //$this->assertTrue(strtotime($post->created_at) >= strtotime($_GET['from']));
+            //$this->assertTrue(strtotime($post->created_at) < strtotime($_GET['until']));
+        }
+
+        // test order_by
+        $_GET['order_by'] = 'date';
+        $_GET['direction'] = 'DESC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $date = strtotime($output[0]->created_at);
+        foreach ($output as $post) {
+            $this->assertTrue(strtotime($post->created_at) <= $date);
+            $date = strtotime($post->created_at);
+        }
+
+        $_GET['order_by'] = 'date';
+        $_GET['direction'] = 'ASC';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        $date = strtotime($output[0]->created_at);
+        foreach ($output as $post) {
+            $this->assertTrue(strtotime($post->created_at) >= $date);
+            $date = strtotime($post->created_at);
         }
 
         $_GET['order_by'] = 'source';
@@ -2092,6 +2669,45 @@ class TestOfPostAPIController extends ThinkUpUnitTestCase {
         }
         $installer_dao = DAOFactory::getDAO('InstallerDAO');
         $this->assertTrue(array_search($prefix . "posts", $installer_dao->getTables()) !== false);
+
+        // test posts contain a links object
+        $_GET['type'] = 'user_posts_in_range';
+        $_GET['user_id'] = '19';
+        $_GET['from'] = '2006-03-01 00:01:00';
+        $_GET['until'] = '2006-03-01 00:01:01';
+        $controller = new PostAPIController(true);
+        $output = json_decode($controller->go());
+        foreach($output as $post) {
+            $this->assertIsA($post, 'stdClass');
+        }
+    }
+
+    public function testUserPostsInRangeProtectedOnNetwork() {
+        $_GET['type'] = 'user_posts_in_range';
+        $_GET['user_id'] = 24;
+        $_GET['from'] = '2006-01-02 00:00:00';
+        $_GET['until'] = '2006-01-02 00:59:59';
+        $controller = new PostAPIController(true);
+        $output = $controller->go();
+        $this->debug($output);
+        $output = json_decode($output);
+        $this->assertEqual(sizeof($output), 1);
+        $this->assertEqual($output->error->type, "UserNotFoundException");
+        $this->assertEqual($output->error->message, "The requested user data is not available.");
+    }
+
+    public function testUserPostsInRangeProtectedInThinkUp() {
+        $_GET['type'] = 'user_posts_in_range';
+        $_GET['user_id'] = 14;
+        $_GET['from'] = '2006-01-02 00:00:00';
+        $_GET['until'] = '2006-01-02 00:59:59';
+        $controller = new PostAPIController(true);
+        $output = $controller->go();
+        $this->debug($output);
+        $output = json_decode($output);
+        $this->assertEqual(sizeof($output), 1);
+        $this->assertEqual($output->error->type, "UserNotFoundException");
+        $this->assertEqual($output->error->message, "The requested user data is not available.");
     }
 
     public function testAPIDisabled() {

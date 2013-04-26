@@ -4,11 +4,11 @@
  *
  * ThinkUp/webapp/_lib/controller/class.PostAPIController.php
  *
- * Copyright (c) 2011 Sam Rose
+ * Copyright (c) 2011-2013 Sam Rose
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -25,7 +25,7 @@
  * Post API Controller
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2011 Sam Rose
+ * @copyright 2011-2013 Sam Rose
  * @author Sam Rose <samwho@lbak.co.uk>
  *
  */
@@ -220,8 +220,6 @@ class PostAPIController extends ThinkUpController {
         switch ($order_by) {
             case 'date': $order_by = 'pub_date';
             break;
-            case 'post_id': $order_by = 'p.post_id';
-            break;
             case 'location': $order_by = 'location';
             break;
             case 'source': $order_by = 'source';
@@ -271,7 +269,7 @@ class PostAPIController extends ThinkUpController {
         /*
          * Check if the API is disabled and, if it is, throw the appropriate exception.
          *
-         * Docs: http://thinkupapp.com/docs/userguide/api/errors/apidisabled.html
+         * Docs: http://thinkup.com/docs/userguide/api/errors/apidisabled.html
          */
         $is_api_disabled = Config::getInstance()->getValue('is_api_disabled');
         if ($is_api_disabled) {
@@ -294,6 +292,33 @@ class PostAPIController extends ThinkUpController {
         } else {
             $this->user = null;
         }
+        //Privacy checks
+        if (substr($this->type, 0, 4)=='user') { //user-related API call
+            if (is_null($this->user)) {
+                // Check why the User object is null. Could be missing required fields or not found.
+                if (is_null($this->user_id) && is_null($this->username)) {
+                    $m = 'A request of type ' . $this->type . ' requires a user_id or username to be specified.';
+                    throw new RequiredArgumentMissingException($m);
+                } else {
+                    throw new UserNotFoundException();
+                }
+            } elseif ($this->user->is_protected) { //user is protected on originating network
+                throw new UserNotFoundException();
+            } else {
+                $instance_dao = DAOFactory::getDAO('InstanceDAO');
+                $instance = $instance_dao->getByUsernameOnNetwork($this->user->username, $this->user->network);
+                if (isset($instance)) {
+                    if (!$instance->is_public) { //user is protected on ThinkUp
+                        throw new UserNotFoundException();
+                    }
+                }
+            }
+        } else { //post-related API call
+            if ($this->network == "facebook") {
+                //assume all Facebook posts are private
+                throw new PostNotFoundException();
+            }
+        }
 
         /*
          * This switch statement is the main part of this function. It decides
@@ -312,7 +337,7 @@ class PostAPIController extends ThinkUpController {
              *
              * Optional arguments: network, include_entities, include_replies, trim_user
              *
-             * Docs: http://thinkupapp.com/docs/userguide/api/posts/post.html
+             * Docs: http://thinkup.com/docs/userguide/api/posts/post.html
              */
             case 'post':
                 if (is_null($this->post_id)) {
@@ -328,9 +353,10 @@ class PostAPIController extends ThinkUpController {
                  *
                  * Required arguments: post_id
                  *
-                 * Optional arguments: network, order_by, unit, count, page, include_entities, include_replies, trim_user
+                 * Optional arguments: network, order_by, unit, count, page, include_entities, include_replies,
+                 * trim_user
                  *
-                 * Docs: http://thinkupapp.com/docs/userguide/api/posts/post_retweets.html
+                 * Docs: http://thinkup.com/docs/userguide/api/posts/post_retweets.html
                  */
             case 'post_retweets':
                 if (is_null($this->post_id)) {
@@ -347,11 +373,12 @@ class PostAPIController extends ThinkUpController {
                  *
                  * Required arguments: post_id
                  *
-                 * Optional arguments: network, order_by, unit, count, page, include_entities, include_replies, trim_user
+                 * Optional arguments: network, order_by, unit, count, page, include_entities, include_replies,
+                 * trim_user
                  *
                  * Ordering can only be done by either location or follower count.
                  *
-                 * Docs: http://thinkupapp.com/docs/userguide/api/posts/post_replies.html
+                 * Docs: http://thinkup.com/docs/userguide/api/posts/post_replies.html
                  */
             case 'post_replies':
                 if (is_null($this->post_id)) {
@@ -363,6 +390,29 @@ class PostAPIController extends ThinkUpController {
                 }
                 break;
 
+
+                /*
+                 * Gets replies to a post within a date range.
+                 *
+                 * Required arguments: post_id, from and until
+                 *
+                 * Optional arguments: network, order_by, unit, count, page, include_entities, include_replies,
+                 * trim_user
+                 *
+                 * Ordering can only be done by either location or follower count.
+                 *
+                 * Docs: http://thinkup.com/docs/userguide/api/posts/post_replies.html
+                 */
+            case 'post_replies_in_range':
+                if (is_null($this->post_id) || is_null($this->from) || is_null($this->until)) {
+                    $m = 'A request of type ' . $this->type . ' requires a post_id to be specified.';
+                    throw new RequiredArgumentMissingException($m);
+                } else {
+                    $data = $this->post_dao->getRepliesToPostInRange($this->post_id, $this->network, $this->from,
+                    $this->until, $this->order_by, $this->unit, $this->is_public, $this->count, $this->page);
+                }
+                break;
+
                 /*
                  * Get posts related to a post (replies to it, retweets of it).
                  *
@@ -371,7 +421,7 @@ class PostAPIController extends ThinkUpController {
                  * Optional arguments: network, count, page, geo_encoded_only, include_original_post, include_entities,
                  * include_replies, trim_user
                  *
-                 * Docs: http://thinkupapp.com/docs/userguide/api/posts/related_posts.html
+                 * Docs: http://thinkup.com/docs/userguide/api/posts/related_posts.html
                  */
             case 'related_posts':
                 if (is_null($this->post_id)) {
@@ -390,21 +440,11 @@ class PostAPIController extends ThinkUpController {
                  *
                  * Optional arguments: network, count, page, include_entities, include_replies, trim_user
                  *
-                 * Docs: http://thinkupapp.com/docs/userguide/api/posts/user_posts_most_replied_to.html
+                 * Docs: http://thinkup.com/docs/userguide/api/posts/user_posts_most_replied_to.html
                  */
             case 'user_posts_most_replied_to':
-                if (is_null($this->user)) {
-                    // Check why the User object is null. Could be missing required fields or not found.
-                    if (is_null($this->user_id) && is_null($this->username)) {
-                        $m = 'A request of type ' . $this->type . ' requires a user_id or username to be specified.';
-                        throw new RequiredArgumentMissingException($m);
-                    } else {
-                        throw new UserNotFoundException();
-                    }
-                } else {
-                    $data = $this->post_dao->getMostRepliedToPosts($this->user->user_id, $this->network, $this->count,
-                    $this->page, $this->is_public);
-                }
+                $data = $this->post_dao->getMostRepliedToPosts($this->user->user_id, $this->network, $this->count,
+                $this->page, $this->is_public);
                 break;
 
                 /*
@@ -414,21 +454,11 @@ class PostAPIController extends ThinkUpController {
                  *
                  * Optional arguments: network, count, page, include_entities, include_replies, trim_user
                  *
-                 * Docs: http://thinkupapp.com/docs/userguide/api/posts/user_posts_most_retweeted.html
+                 * Docs: http://thinkup.com/docs/userguide/api/posts/user_posts_most_retweeted.html
                  */
             case 'user_posts_most_retweeted':
-                if (is_null($this->user)) {
-                    // Check why the User object is null. Could be missing required fields or not found.
-                    if (is_null($this->user_id) && is_null($this->username)) {
-                        $m = 'A request of type ' . $this->type . ' requires a user_id or username to be specified.';
-                        throw new RequiredArgumentMissingException($m);
-                    } else {
-                        throw new UserNotFoundException();
-                    }
-                } else {
-                    $data = $this->post_dao->getMostRetweetedPosts($this->user->user_id, $this->network, $this->count,
-                    $this->page, $this->is_public);
-                }
+                $data = $this->post_dao->getMostRetweetedPosts($this->user->user_id, $this->network, $this->count,
+                $this->page, $this->is_public);
                 break;
 
                 /*
@@ -439,21 +469,11 @@ class PostAPIController extends ThinkUpController {
                  * Optional arguments: network, count, page, order_by, direction, include_entities, include_replies,
                  * trim_user
                  *
-                 * Docs: http://thinkupapp.com/docs/userguide/api/posts/user_posts.html
+                 * Docs: http://thinkup.com/docs/userguide/api/posts/user_posts.html
                  */
             case 'user_posts':
-                if (is_null($this->user)) {
-                    // Check why the User object is null. Could be missing required fields or not found.
-                    if (is_null($this->user_id) && is_null($this->username)) {
-                        $m = 'A request of type ' . $this->type . ' requires a user_id or username to be specified.';
-                        throw new RequiredArgumentMissingException($m);
-                    } else {
-                        throw new UserNotFoundException();
-                    }
-                } else {
-                    $data = $this->post_dao->getAllPosts($this->user->user_id, $this->network, $this->count,
-                    $this->page, true, $this->order_by, $this->direction, $this->is_public);
-                }
+                $data = $this->post_dao->getAllPosts($this->user->user_id, $this->network, $this->count,
+                $this->page, true, $this->order_by, $this->direction, $this->is_public);
                 break;
 
                 /*
@@ -464,21 +484,13 @@ class PostAPIController extends ThinkUpController {
                  * Optional arguments: network, order_by, direction, include_entities, include_replies,
                  * trim_user
                  *
-                 * Docs: http://thinkupapp.com/docs/userguide/api/posts/user_posts_in_range.html
+                 * Docs: http://thinkup.com/docs/userguide/api/posts/user_posts_in_range.html
                  */
             case 'user_posts_in_range':
-                if (is_null($this->user) || is_null($this->from) || is_null($this->until)) {
-                    // Check why the User object is null. Could be missing required fields or not found.
-                    if (is_null($this->user_id) && is_null($this->username)) {
-                        $m = 'A request of type ' . $this->type . ' requires a user_id or username to be specified.';
-                        throw new RequiredArgumentMissingException($m);
-                    } else if (is_null($this->from) || is_null($this->until)) {
-                        $m = 'A request of type ' . $this->type . ' requires valid from and until parameters to be ';
-                        $m .= 'specified.';
-                        throw new RequiredArgumentMissingException($m);
-                    } else {
-                        throw new UserNotFoundException();
-                    }
+                if (is_null($this->from) || is_null($this->until)) {
+                    $m = 'A request of type ' . $this->type . ' requires valid from and until parameters to be ';
+                    $m .= 'specified.';
+                    throw new RequiredArgumentMissingException($m);
                 } else {
                     $data = $this->post_dao->getPostsByUserInRange($this->user->user_id, $this->network, $this->from,
                     $this->until, $this->order_by, $this->direction, $iterator=false, $this->is_public);
@@ -492,20 +504,30 @@ class PostAPIController extends ThinkUpController {
                  *
                  * Optional arguments: network, count, page, include_rts, include_entities, include_replies, trim_user
                  *
-                 * Docs: http://thinkupapp.com/docs/userguide/api/posts/user_mentions.html
+                 * Docs: http://thinkup.com/docs/userguide/api/posts/user_mentions.html
                  */
             case 'user_mentions':
-                if (is_null($this->user)) {
-                    // Check why the User object is null. Could be missing required fields or not found.
-                    if (is_null($this->user_id) && is_null($this->username)) {
-                        $m = 'A request of type ' . $this->type . ' requires a user_id or username to be specified.';
-                        throw new RequiredArgumentMissingException($m);
-                    } else {
-                        throw new UserNotFoundException();
-                    }
+                $data = $this->post_dao->getAllMentions($this->user->username, $this->count, $this->network,
+                $this->page, $this->is_public, $this->include_rts, $this->order_by, $this->direction);
+                break;
+
+
+                /*
+                 * Gets posts a user is mentioned in.within a date range
+                 *
+                 * Required arguments: user_id or username, from and until
+                 *
+                 * Optional arguments: network, count, page, include_rts, include_entities, include_replies, trim_user
+                 */
+            case 'user_mentions_in_range':
+                if (is_null($this->from) || is_null($this->until)) {
+                    $m = 'A request of type ' . $this->type . ' requires valid from and until parameters to be ';
+                    $m .= 'specified.';
+                    throw new RequiredArgumentMissingException($m);
                 } else {
-                    $data = $this->post_dao->getAllMentions($this->user->username, $this->count, $this->network,
-                    $this->page, $this->is_public, $this->include_rts, $this->order_by, $this->direction);
+                    $data = $this->post_dao->getAllMentionsInRange($this->user->username, $this->count, $this->network,
+                    $this->from, $this->until, $this->page, $this->is_public, $this->include_rts,$this->order_by,
+                    $this->direction);
                 }
                 break;
 
@@ -517,21 +539,26 @@ class PostAPIController extends ThinkUpController {
                  * Optional arguments: network, count, page, order_by, direction, include_entities, include_replies,
                  * trim_user
                  *
-                 * Docs: http://thinkupapp.com/docs/userguide/api/posts/user_questions.html
+                 * Docs: http://thinkup.com/docs/userguide/api/posts/user_questions.html
                  */
             case 'user_questions':
-                if (is_null($this->user)) {
-                    // Check why the User object is null. Could be missing required fields or not found.
-                    if (is_null($this->user_id) && is_null($this->username)) {
-                        $m = 'A request of type ' . $this->type . ' requires a user_id or username to be specified.';
-                        throw new RequiredArgumentMissingException($m);
-                    } else {
-                        throw new UserNotFoundException();
-                    }
-                } else {
-                    $data = $this->post_dao->getAllQuestionPosts($this->user->user_id, $this->network, $this->count,
-                    $this->page, $this->order_by, $this->direction, $this->is_public);
-                }
+                $data = $this->post_dao->getAllQuestionPosts($this->user->user_id, $this->network, $this->count,
+                $this->page, $this->order_by, $this->direction, $this->is_public);
+                break;
+
+                /*
+                 * Gets question posts a user has made within a date range
+                 *
+                 * Required arguments: user_id or username, from and until
+                 *
+                 * Optional arguments: network, count, page, order_by, direction, include_entities, include_replies,
+                 * trim_user
+                 *
+                 * Docs: http://thinkup.com/docs/userguide/api/posts/user_questions.html
+                 */
+            case 'user_questions_in_range':
+                $data = $this->post_dao->getAllQuestionPostsInRange($this->user->user_id, $this->network, $this->count,
+                $this->from, $this->until, $this->page, $this->order_by, $this->direction, $this->is_public);
                 break;
 
                 /*
@@ -542,31 +569,40 @@ class PostAPIController extends ThinkUpController {
                  * Optional arguments: network, count, page, order_by, direction, include_entities, include_replies,
                  * trim_user
                  *
-                 * http://thinkupapp.com/docs/userguide/api/posts/user_replies.html
+                 * http://thinkup.com/docs/userguide/api/posts/user_replies.html
                  */
             case 'user_replies':
-                if (is_null($this->user)) {
-                    // Check why the User object is null. Could be missing required fields or not found.
-                    if (is_null($this->user_id) && is_null($this->username)) {
-                        $m = 'A request of type ' . $this->type . ' requires a user_id or username to be specified.';
-                        throw new RequiredArgumentMissingException($m);
-                    } else {
-                        throw new UserNotFoundException();
-                    }
-                } else {
-                    $data = $this->post_dao->getAllReplies($this->user->user_id, $this->network, $this->count,
-                    $this->page, $this->order_by, $this->direction, $this->is_public);
-                }
+                $data = $this->post_dao->getAllReplies($this->user->user_id, $this->network, $this->count,
+                $this->page, $this->order_by, $this->direction, $this->is_public);
+                break;
+
+                /*
+                 * Gets replies to a user within a date range.
+                 *
+                 * Required arguments: user_id or username, from and until
+                 *
+                 * Optional arguments: network, count, page, order_by, direction, include_entities, include_replies,
+                 * trim_user
+                 *
+                 * http://thinkup.com/docs/userguide/api/posts/user_replies.html
+                 */
+            case 'user_replies_in_range':
+                $data = $this->post_dao->getAllRepliesInRange($this->user->user_id, $this->network, $this->count,
+                $this->from, $this->until, $this->page, $this->order_by, $this->direction, $this->is_public);
                 break;
 
                 /*
                  * Generate an error because the API call type was not recognized.
                  *
-                 * Docs: http://thinkupapp.com/docs/userguide/api/errors/apicalltypenotrecognised.html
+                 * Docs: http://thinkup.com/docs/userguide/api/errors/apicalltypenotrecognised.html
                  */
             default:
                 throw new APICallTypeNotRecognizedException($this->type);
                 break;
+        }
+
+        if (is_null($data) ) {
+            throw new PostNotFoundException();
         }
 
         switch ($this->network) {
@@ -581,10 +617,11 @@ class PostAPIController extends ThinkUpController {
                 break;
 
             case 'facebook':
-                // write a function here to convert to Facebook API style
+                // TODO: write a function here to convert to Facebook API style
                 break;
 
-            default: break;
+            default:
+                break;
         }
 
         // if no posts were found, $data is null. Set it to an empty array.
@@ -606,7 +643,7 @@ class PostAPIController extends ThinkUpController {
      * @return stdObject The post formatted to look like the Twitter API.
      */
     private function convertPostToTweet($post) {
-        if (!is_a($post, 'Post')) {
+        if (!($post instanceof Post)) {
             return null;
         }
 
@@ -645,6 +682,9 @@ class PostAPIController extends ThinkUpController {
             $coordinates = preg_split('/(, |,| )/', $post->geo);
             $post->geo = new stdClass();
             $post->geo->coordinates = $coordinates;
+            if (!isset($post->coordinates)) {
+                $post->coordinates = new stdClass();
+            }
             $post->coordinates->coordinates = $coordinates;
         }
 
@@ -653,6 +693,7 @@ class PostAPIController extends ThinkUpController {
          */
         $post->thinkup = new stdClass();
         $post->thinkup->retweet_count_cache = $post->retweet_count_cache;
+        $post->thinkup->retweet_count_api = $post->retweet_count_api;
         $post->thinkup->reply_count_cache = $post->reply_count_cache;
         $post->thinkup->old_retweet_count_cache = $post->old_retweet_count_cache;
         $post->thinkup->is_geo_encoded = $post->is_geo_encoded;
@@ -674,14 +715,10 @@ class PostAPIController extends ThinkUpController {
                 $post->user->statuses_count = $post->user->post_count;
                 $post->user->created_at = strftime('%a %b %d %T %z %Y', strtotime($post->user->joined));
                 $post->user->favorites_count = $post->user->favorites_count;
-                $post->user->utc_offset = Config::getInstance()->getGMTOffset() * 3600;
 
                 if (isset($post->user->other)) {
                     if (isset($post->user->other['avg_tweets_per_day'])) {
                         $post->user->avg_tweets_per_day = $post->user->other['avg_tweets_per_day'];
-                    }
-                    if (isset($post->user->other['last_updated'])) {
-                        $post->user->last_updated = $post->user->other['last_updated'];
                     }
                 }
 
@@ -692,37 +729,20 @@ class PostAPIController extends ThinkUpController {
                 $post->user->thinkup->found_in = $post->user->found_in;
 
             } else {
+                $post->user = new stdClass();
                 $post->user->id = $user->user_id;
             }
         }
 
         if ($this->include_entities) {
             /*
-             * Gather the links and format them into a Tweet entity.
-             *
-             * As part of this conditional, a search for the link in the post text
-             * is made because it seemed occasionally that unrelated links were
-             * finding their way into entities. I don't know why.
-             */
-            $post->entities->urls = array();
-            if (!is_null($post->link)) {
-                if (!is_null($post->link->url) && !empty($post->link->url)
-                && stripos($post->link->url, $post->text) !== false) {
-                    $link = new stdClass();
-                    $link->url = stripslashes($post->link->url);
-                    $link->expanded_url = $post->link->expanded_url == "" ? null : $post->link->expanded_url;
-                    $link->indices = array();
-                    $link->indices[] = stripos($post->text, $link->url);
-                    $link->indices[] = strlen($link->url) + $link->indices[0];
-                    $post->entities->urls[] = $link;
-                }
-            }
-
-            /*
              * Gather hashtags and format them into a Tweet entity.
              */
             $extracted_hashtags = Post::extractHashtags($post->text);
 
+            if (!isset($post->entities)) {
+                $post->entities = new stdClass();
+            }
             $post->entities->hashtags = array();
             if (!empty($extracted_hashtags)) {
                 foreach ($extracted_hashtags as $hashtag_text) {
@@ -740,6 +760,9 @@ class PostAPIController extends ThinkUpController {
              */
             $mentions = Post::extractMentions($post->text);
 
+            if (!isset($post->entities)) {
+                $post->entities = new stdClass();
+            }
             $post->entities->user_mentions = array();
             if (!empty($mentions)) {
                 foreach ($mentions as $username) {
@@ -756,13 +779,15 @@ class PostAPIController extends ThinkUpController {
                          * made to fill in the missing details.
                          *
                          * Not 100% sure if this is a good idea but it works.
-                         */
-                        $user_api_call = json_decode(Utils::getURLContents(
-                                                'https://api.twitter.com/1/users/show.json?screen_name=' . $username));
+                         * Update, Feb 2013: This doesn't work with Twitter API v 1.1, commenting out.
 
-                        $mention->name = $user_api_call->name;
-                        $mention->id = $user_api_call->id;
-                        $mention->screen_name = $user_api_call->screen_name;
+                         $user_api_call = json_decode(Utils::getURLContents(
+                         'https://api.twitter.com/1/users/show.json?screen_name=' . $username));
+
+                         $mention->name = $user_api_call->name;
+                         $mention->id = $user_api_call->id;
+                         $mention->screen_name = $user_api_call->screen_name;
+                         */
                     } else {
                         $mention->name = $mentioned_user->full_name;
                         $mention->id = $mentioned_user->user_id;

@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/plugins/facebook/tests/classes/mock.facebook.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -60,6 +60,15 @@ class Facebook {
     }
 
     public function api($str) {
-
+        if ($str = '/me') {
+            return array('name'=>'Gina Trapani', 'id'=>'606837591');
+        }
     }
+
+    public function setAccessToken($token) {
+    }
+}
+
+class BaseFacebook {
+    //placeholder for mock class load detection in facebook.php plugin file
 }

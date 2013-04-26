@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/fixtures/class.FixtureBuilder.php
  *
- * Copyright (c) 2009-2011 Mark Wilkie
+ * Copyright (c) 2009-2013 Mark Wilkie
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -60,7 +60,7 @@
  *   </code>
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Mark Wilkie
+ * @copyright 2009-2013 Mark Wilkie
  * @author Mark Wilkie <mwilkie[at]gmail[dot]com>
  */
 class FixtureBuilder {
@@ -91,6 +91,10 @@ class FixtureBuilder {
      */
     static $pdo;
 
+    /**
+     * we cache our desc staments
+     */
+    static $table_descs = array();
 
     /*
      * our Constructor
@@ -98,7 +102,7 @@ class FixtureBuilder {
     public function __construct($debug = false) {
         $this->DEBUG = $debug ? $debug : $this->DEBUG;
         $this->config = Config::getInstance();
-        if(is_null(self::$pdo)) {
+        if (is_null(self::$pdo)) {
             self::$pdo = $this->connect();
         }
     }
@@ -124,13 +128,18 @@ class FixtureBuilder {
     private function connect() {
         $db_string = sprintf("mysql:dbname=%s;host=%s", $this->config->getValue('db_name'),
         $this->config->getValue('db_host'));
-        if($this->DEBUG) { echo "DEBUG: Connecting to $db_string\n"; }
+        if ($this->DEBUG) { echo "DEBUG: Connecting to $db_string\n"; }
         $db_socket = $this->config->getValue('db_socket');
         if ( $db_socket) {
             $db_string.=";unix_socket=".$db_socket;
         }
         $pdo = new PDO($db_string, $this->config->getValue('db_user'), $this->config->getValue('db_password'));
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        //set timezone
+        $timezone = $this->config->getValue('timezone');
+        $time = new DateTime("now", new DateTimeZone($timezone) );
+        $tz_offset = $time->format('P');
+        $pdo->exec("SET time_zone = '$tz_offset'");
         return $pdo;
     }
 
@@ -155,6 +164,9 @@ class FixtureBuilder {
     public function describeTable($table) {
         $columns = array();
         $table = $this->config->getValue('table_prefix') . $table;
+        if (isset(self::$table_descs[$table])) {
+            return self::$table_descs[$table];
+        }
         try {
             $stmt = self::$pdo->query('desc ' . $table);
             while ($row = $stmt->fetch()) {
@@ -163,6 +175,7 @@ class FixtureBuilder {
         } catch(Exception $e) {
             throw new FixtureBuilderException('Unable to describe table "' . $table . '" - ' . $e->getMessage());
         }
+        self::$table_descs[$table] = $columns;
         return $columns;
     }
 
@@ -178,45 +191,50 @@ class FixtureBuilder {
         $sql = "INSERT INTO " . $this->config->getValue('table_prefix') . $table;
         foreach( $columns as $column) {
             $field_value = (! is_null($args)) && isset( $args[ $column['Field'] ]) ? $args[ $column['Field'] ] : null;
-            if( isset($column['Key']) && $column['Key'] == 'UNI' && ! $field_value) {
+            if ( isset($column['Key']) && $column['Key'] == 'UNI' && ! $field_value) {
                 throw new FixtureBuilderException($column['Field'] .
                 ' has a unique key constraint, a value must be defined for this column');
             }
-            if( isset($column['Extra']) && $column['Extra'] == 'auto_increment' && ! $field_value ) {
+            if ( isset($column['Extra']) && $column['Extra'] == 'auto_increment' && ! $field_value ) {
                 continue;
             }
-            if(isset($field_value)) {
-                if(gettype($field_value) == 'array') {
-                    if(! isset($field_value['function'])) {
+            if (isset($field_value)) {
+                if (gettype($field_value) == 'array') {
+                    if (!isset($field_value['function'])) {
                         throw new FixtureBuilderException("Column value array/hash must have a function defined");
                     } else {
                         $column['value'] = $field_value;
                     }
                 } else {
-                    if(preg_match('/^(times|date)/', $column['Type'])) {
+                    if (preg_match('/^(times|date)/', $column['Type'])) {
                         $column['value'] = $this->genDate($field_value);
                     } else {
                         $column['value'] = $field_value;
                     }
                 }
-            } else if(isset($args) && array_search($column['Field'], array_keys($args)) !== false) {
+            } else if (isset($args) && array_search($column['Field'], array_keys($args)) !== false) {
                 // Column value was specified, but is null; we just don't want to specify a value for that column
                 continue;
             } else if (isset($column['Default']) && $column['Default'] != ''
             && $column['Default'] != 'CURRENT_TIMESTAMP') {
                 $column['value'] = $column['Default'];
             } else {
-                if(preg_match('/^enum/', $column['Type'])) {
+                if (preg_match('/^enum/', $column['Type'])) {
                     $column['value'] = $this->genEnum( $column['Type'] );
-                } else if(preg_match('/^decimal/', $column['Type'])) {
+                } else if (preg_match('/^decimal/', $column['Type'])) {
                     $column['value'] = $this->genDecimal($column['Type']);
-                } else if(preg_match('/^(int|tinyint)/', $column['Type'])) {
-                    $column['value'] = $this->genInt();
-                } else if(preg_match('/^bigint/', $column['Type'])) {
+                } else if (preg_match('/^(int|tinyint)/', $column['Type'])) {
+                    preg_match('#\((.*?)\)#', $column['Type'], $int_length);
+                    $column['value'] = $this->genInt($int_length[1]);
+                } else if (preg_match('/^bigint/', $column['Type'])) {
                     $column['value'] = $this->genBigint();
-                } else if(preg_match('/^(times|date)/', $column['Type'])) {
+                } else if (preg_match('/^(times|date)/', $column['Type'])) {
                     $column['value'] = $this->genDate();
-                } else if(preg_match('/^(varchar|text|tinytext|mediumtext|longtext|blob)/', $column['Type'])) {
+                } else if (preg_match('/^(point)/', $column['Type'])) {
+                    $column['value'] = "GeometryFromText('Point" . $this->genPoint() . "')";
+                } else if (preg_match('/^(polygon)/', $column['Type'])) {
+                    $column['value'] = "PolygonFromText('Polygon" . $this->genPolygon() . "')";
+                } else if (preg_match('/^(varchar|text|tinytext|mediumtext|longtext|blob)/', $column['Type'])) {
                     $column['value'] = $this->genVarchar();
                 }
             }
@@ -226,13 +244,17 @@ class FixtureBuilder {
         $values = array();
         $values_string = '';
         foreach(array_values($this->columns) as $value) {
-            if($values_string == '') {
+            if ($values_string == '') {
                 $values_string = ' (';
             } else {
                 $values_string .= ',';
             }
-            if(gettype($value) == 'array') {
+            if (gettype($value) == 'array') {
                 $values_string .= $value['function'];
+            } elseif(preg_match('/^GeometryFromText/',$value)) {
+                $values_string .= $value;
+            } elseif(preg_match('/^PolygonFromText/',$value)) {
+                $values_string .= $value;
             } else {
                 array_push($values, $value);
                 $values_string .= '?';
@@ -242,7 +264,7 @@ class FixtureBuilder {
         $stmt = self::$pdo->prepare($sql);
         $stmt->execute($values);
         $last_insert_id = self::$pdo->lastInsertId();
-        if(isset($last_insert_id)) {
+        if (isset($last_insert_id)) {
             $this->columns['last_insert_id'] = $last_insert_id;
         }
     }
@@ -268,7 +290,7 @@ class FixtureBuilder {
         "n","p","q","r","s","t","u","v","w","x","y","z",
         "A","B","C","D","E","F","G","H","J","K","L","M",
         "N","P","Q","R","S","T","U","V","W","X","Y","Z",
-        "1","2","3","4","5","6","7","8","9", "0", " ");
+        "1","2","3","4","5","6","7","8","9", " ");
 
         $length = $length > 0 ? $length : $this->DATA_DEFAULTS['varchar'];
         $length = rand(1, $length);
@@ -276,7 +298,7 @@ class FixtureBuilder {
         for($i = 0; $i < $length; $i++) {
             $string .= $characters[mt_rand(0, count($characters)-1)];
         }
-        return $string;
+        return strval($string);
     }
 
     /*
@@ -341,11 +363,32 @@ class FixtureBuilder {
     public function genDecimal($values) {
         $values = preg_replace("/(decimal)\\(|\\)/i", '', $values);
         $values = preg_split('/,/', $values);
-        $left = mt_rand(0, pow(10, $values[0]) - 1);
-        $right = mt_rand(1, pow(10, $values[1]) - 1);
+        $left = mt_rand(0, pow(2, $values[0]) - 1);
+        $right = mt_rand(1, pow(2, $values[1]) - 1);
         $value = $left . '.' . $right;
         $value = $value + 0; // cast to a float;
         return $value;
+    }
+
+    /*
+     * Generates point value
+     * @return string
+     */
+    public function genPoint() {
+        $left = mt_rand(1, 100);
+        $right = mt_rand(1, 100);
+        return "($left $right)";
+    }
+
+    /*
+     * Generates polygon value
+     * @return string
+     */
+    public function genPolygon() {
+        $first = mt_rand(1, 100);
+        $second = mt_rand(1, 100);
+        $third = mt_rand(1, 100);
+        return "($first $second $third)";
     }
 
     /*
@@ -356,14 +399,14 @@ class FixtureBuilder {
     public function genDate($value = null) {
         $time_inc_map = array('h' => 'HOUR', 'd' => 'DAY', 'm' => 'MINUTE', 's' => 'SECOND');
         $sql = 'select now() - interval rand()*100000000 second';
-        if($value) {
-            if(preg_match('/^(\+|\-)(\d+)(s|m|h|d)/', $value, $matches)) {
+        if ($value) {
+            if (preg_match('/^(\+|\-)(\d+)(s|m|h|d)/', $value, $matches)) {
                 $sql = "select now() $matches[1] interval $matches[2] " . $time_inc_map[$matches[3]];
             } else {
                 $sql = null;
             }
         }
-        if($sql) {
+        if ($sql) {
             $stmt = self::$pdo->query(  $sql . ' as FDATE' );
             $data = $stmt->fetch();
             return $data[0];
@@ -377,7 +420,7 @@ class FixtureBuilder {
      * truncates the fixture table
      */
     function __destruct() {
-        if(isset($this->table)) {
+        if (isset($this->table)) {
             $table = Config::getInstance()->getValue('table_prefix') . $this->table;
             try {
                 self::$pdo->query('truncate table ' . $table);

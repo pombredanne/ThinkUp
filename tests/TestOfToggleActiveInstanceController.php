@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfToggleActiveInstanceController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,11 +23,11 @@
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 
 class TestOfToggleActiveInstanceController extends ThinkUpUnitTestCase {
 
@@ -50,7 +50,7 @@ class TestOfToggleActiveInstanceController extends ThinkUpUnitTestCase {
         $v_mgr = $controller->getViewManager();
         $config = Config::getInstance();
         $this->assertEqual('You must <a href="'.$config->getValue('site_root_path').
-        'session/login.php">log in</a> to do this.', $v_mgr->getTemplateDataItem('errormsg'));
+        'session/login.php">log in</a> to do this.', $v_mgr->getTemplateDataItem('error_msg'));
     }
 
     public function testNotAnAdmin() {
@@ -60,7 +60,7 @@ class TestOfToggleActiveInstanceController extends ThinkUpUnitTestCase {
 
         $v_mgr = $controller->getViewManager();
         $config = Config::getInstance();
-        $this->assertEqual('You must be a ThinkUp admin to do this', $v_mgr->getTemplateDataItem('errormsg'));
+        $this->assertEqual('You must be a ThinkUp admin to do this', $v_mgr->getTemplateDataItem('error_msg'));
     }
 
     public function testMissingInstanceParam() {
@@ -88,11 +88,26 @@ class TestOfToggleActiveInstanceController extends ThinkUpUnitTestCase {
         $this->assertEqual($results, 0, $results);
     }
 
-    public function testBothParamsExistentInstance() {
+    public function testBothParamsExistentInstanceNoCSRFToken() {
         $builder = FixtureBuilder::build('instances', array('id'=>12, 'is_active'=>1));
-        $this->simulateLogin('me@example.com', true);
+        $this->simulateLogin('me@example.com', true, true);
         $_GET['u'] = '12';
         $_GET['p'] = '0';
+        $controller = new ToggleActiveInstanceController(true);
+        try {
+            $results = $controller->control();
+            $this->fail("should throw InvalidCSRFTokenException");
+        } catch(InvalidCSRFTokenException $e) {
+            $this->assertIsA($e, 'InvalidCSRFTokenException');
+        }
+    }
+
+    public function testBothParamsExistentInstance() {
+        $builder = FixtureBuilder::build('instances', array('id'=>12, 'is_active'=>1));
+        $this->simulateLogin('me@example.com', true, true);
+        $_GET['u'] = '12';
+        $_GET['p'] = '0';
+        $_GET['csrf_token'] = parent::CSRF_TOKEN;
         $controller = new ToggleActiveInstanceController(true);
         $results = $controller->go();
         $this->assertEqual($results, 1);

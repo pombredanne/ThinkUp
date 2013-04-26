@@ -1,52 +1,62 @@
+<div class="section">
 <div class="clearfix">
-  <h2>{$header}</h2>
-  {if $description}
-    <i>{$description}
-      {if $is_searchable}
-        [<a href="#" class="grid_search" title="Search" onclick="return false;"><span id="grid_search_icon">Search</span></a>]
-      {/if}
-    </i>
-  {/if}
   {insert name="help_link" id=$display}
+  <h2>{if $parent_name}<a href="?v={$parent}&u={$instance->network_username}&n=twitter">{$parent_name}</a> &rarr; {/if}{$header}</h2>
+  {if $description}<h3>{$description}</h3>{/if}
 </div>
-
-    {if $error}
-    <p class="error">
-        {$error}
-    </p>    
-    {/if}
 {if ($display eq 'tweets-all' and not $all_tweets) or 
     ($display eq 'tweets-mostreplies' and not $most_replied_to_tweets) or
     ($display eq 'tweets-mostretweeted' and not $most_retweeted) or
     ($display eq 'tweets-convo' and not $author_replies)}
-  <div class="ui-state-highlight ui-corner-all" style="margin: 20px 0px; padding: .5em 0.7em;"> 
+  <div class="alert urgent" style=""> 
     <p>
       <span class="ui-icon ui-icon-info" style="float: left; margin:.3em 0.3em 0 0;"></span>
       No tweets to display. <a href="{$site_root_path}crawler/updatenow.php">Update your data now.</a>
     </p>
   </div>
 {/if}
+
+    <div class="header">
+    {if $is_searchable}<a href="#" class="grid_search" title="Search" onclick="return false;"><span id="grid_search_icon">Search</span></a>{/if}
+    {if $logged_in_user and $display eq 'tweets-all'} | <a href="{$site_root_path}post/export.php?u={$instance->network_username|urlencode}&n={$instance->network}">Export</a>{/if}
+    </div>
+
+{if $is_searchable}
+    {include file="_grid.search.tpl"}
+    <script type="text/javascript" src="{$site_root_path}assets/js/grid_search.js"></script>
+{/if}
+
 {if $all_tweets and ($display eq 'tweets-all' or $display eq 'tweets-questions')}
+<div id="all-posts-div">
   {foreach from=$all_tweets key=tid item=t name=foo}
-    {include file="_post.tpl" t=$t}
+    {include file="_post.counts_no_author.tpl" post=$t headings="NONE"}
   {/foreach}
+</div>
 {/if}
 
 {if $all_tweets and $display eq 'ftweets-all'}
+<div id="all-posts-div">
   {foreach from=$all_tweets key=tid item=t name=foo}
-    {include file="_post.tpl" t=$t}
+    {include file="_post.author_no_counts.tpl" post=$t}
+  {/foreach}
+</div>
+{/if}
+
+{if $all_favd and $display eq 'favd-all'}
+  {foreach from=$all_favd key=tid item=t name=foo}
+    {include file="_post.counts_no_author.tpl" post=$t show_favorites_instead_of_retweets='true'}
   {/foreach}
 {/if}
 
 {if $most_replied_to_tweets}
   {foreach from=$most_replied_to_tweets key=tid item=t name=foo}
-    {include file="_post.tpl" t=$t}
+    {include file="_post.counts_no_author.tpl" post=$t}
   {/foreach}
 {/if}
 
 {if $most_retweeted}
   {foreach from=$most_retweeted key=tid item=t name=foo}
-    {include file="_post.tpl" t=$t}
+    {include file="_post.counts_no_author.tpl" post=$t}
   {/foreach}
 {/if}
 
@@ -56,10 +66,18 @@
   {/foreach}
 {/if}
 
+{if $messages_to_you}
+<div id="all-posts-div">
+  {foreach from=$messages_to_you key=tid item=t name=foo}
+    {include file="_post.tpl" t=$t}
+  {/foreach}
+</div>
+{/if}
+
 {if ($display eq 'mentions-all' and not $all_mentions) or 
     ($display eq 'mentions-allreplies' and not $all_replies) or
-    ($display eq 'mentions-orphan' and not $orphan_replies) or 
-    ($display eq 'mentions-standalone' and not $standalone_replies)}
+    ($display eq 'home-timeline' and not $home_timeline) or
+    ($display eq 'mentions-orphan' and not $orphan_replies)}
   <div class="ui-state-highlight ui-corner-all" style="margin: 20px 0px; padding: .5em 0.7em;"> 
     <p>
       <span class="ui-icon ui-icon-info" style="float: left; margin:.3em 0.3em 0 0;"></span>
@@ -70,26 +88,36 @@
 
 {if $orphan_replies}
   {foreach from=$orphan_replies key=tid item=t name=foo}
-    {include file="_post.otherorphan.tpl" t=$t}
+    {include file="_post.author_no_counts.tpl" post=$t}
   {/foreach}
   </form>
 {/if} 
 
 {if $all_mentions}
+<div id="all-posts-div">
   {foreach from=$all_mentions key=tid item=t name=foo}
-    {include file="_post.otherorphan.tpl" t=$t}
+    {include file="_post.author_no_counts.tpl" post=$t}
   {/foreach}
+</div>
+{/if}
+
+{if $home_timeline}
+<div id="all-posts-div">
+  {foreach from=$home_timeline key=tid item=t name=foo}
+    {include file="_post.tpl" t=$t}
+  {/foreach}
+</div>
 {/if}
 
 {if $all_replies}
   {foreach from=$all_replies key=tid item=t name=foo}
-    {include file="_post.tpl" t=$t}
+    {include file="_post.author_no_counts.tpl" post=$t}
   {/foreach}
 {/if}
 
-{if $standalone_replies}
-  {foreach from=$standalone_replies key=tid item=t name=foo}
-    {include file="_post.otherorphan.tpl" t=$t}
+{if $years_most_popular}
+  {foreach from=$years_most_popular key=tid item=t name=foo}
+    {include file="_post.counts_no_author.tpl" post=$t}
   {/foreach}
 {/if}
 
@@ -98,7 +126,7 @@ or ($display eq 'friends-mostfollowed' and not $people) or ($display eq 'friends
 or ($display eq 'friends-notmutual' and not $people) 
 or ($display eq 'followers-mostfollowed' and not $people) or ($display eq 'followers-leastlikely' and not $people)
 or ($display eq 'followers-former' and not $people) or ($display eq 'followers-earliest' and not $people)}
-  <div class="ui-state-highlight ui-corner-all" style="margin: 20px 0px; padding: .5em 0.7em;"> 
+  <div class="alert urgent" style=""> 
     <p>
       <span class="ui-icon ui-icon-info" style="float: left; margin:.3em 0.3em 0 0;"></span>
       No users found. <a href="{$site_root_path}crawler/updatenow.php">Update your data now.</a>
@@ -127,39 +155,13 @@ or ($display eq 'followers-former' and not $people) or ($display eq 'followers-e
   {/foreach}  
 {/if}
 
-<script type="text/javascript">
-  {literal}
-  $(function() {
-    // Begin reply assignment actions.
-    $(".button").click(function() {
-      var element = $(this);
-      var Id = element.attr("id");
-      var oid = Id;
-      var pid = $("select#pid" + Id + " option:selected").val();
-      var u = '{/literal}{$i->network_username|escape:'url'}{literal}';
-      var t = 'inline.view.tpl';
-      var ck = '{/literal}{$i->network_username|escape:'url'}-{$logged_in_user}-{$display}{literal}';
-      var dataString = 'u=' + u + '&pid=' + pid + '&oid[]=' + oid + '&t=' + t + '&ck=' + ck;
-      $.ajax({
-        type: "GET",
-        url: "{/literal}{$site_root_path}{literal}post/mark-parent.php",
-        data: dataString,
-        success: function() {
-          $('#div' + Id).html("<div class='success' id='message" + Id + "'></div>");
-          $('#message' + Id).html("<p>Saved!</p>").hide().fadeIn(1500, function() {
-            $('#message'+Id);  
-          });
-        }
-      });
-      return false;
-    });
-  });
-  {/literal}
-</script>
+<div class="view-all" id="older-posts-div">
+  {if $next_page}
+    <a href="{$site_root_path}dashboard.php?{if $smarty.get.v}v={$smarty.get.v}&{/if}{if $smarty.get.u}u={$smarty.get.u}&{/if}{if $smarty.get.n}n={$smarty.get.n|urlencode}&{/if}page={$next_page}" id="next_page">&#60; Older</a>
+  {/if}
+  {if $last_page}
+    | <a href="{$site_root_path}dashboard.php?{if $smarty.get.v}v={$smarty.get.v}&{/if}{if $smarty.get.u}u={$smarty.get.u}&{/if}{if $smarty.get.n}n={$smarty.get.n|urlencode}&{/if}page={$last_page}" id="last_page">Newer &#62;</a>
+  {/if}
+</div>
 
-{if $is_searchable}
-    {include file="_grid.search.tpl"}
-    <script type="text/javascript" src="{$site_root_path}assets/js/grid_search.js"></script>
-    
-{/if}
-
+</div>

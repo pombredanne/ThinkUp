@@ -2,8 +2,9 @@
 /*
  Plugin Name: Twitter
  Plugin URI: http://github.com/ginatrapani/thinkup/tree/master/webapp/plugins/twitter/
- Description: Crawler plugin fetches data from Twitter.com for the authorized user.
+ Description: Capture and display tweets.
  Icon: assets/img/twitter_icon.png
+ Class: TwitterPlugin
  Version: 0.01
  Author: Gina Trapani
  */
@@ -12,11 +13,11 @@
  *
  * ThinkUp/webapp/plugins/twitter/controller/twitter.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -32,18 +33,16 @@
 /**
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 $config = Config::getInstance();
-//@TODO: For the testing sake, check if mock class has already been loaded
-//@TODO: Figure out a better way to do this
+//For testing, check if mock class has already been loaded
 if (!class_exists('TwitterOAuth')) {
-    Utils::defineConstants();
-    require_once THINKUP_WEBAPP_PATH.'plugins/twitter/extlib/twitteroauth/twitteroauth.php';
+    Loader::addSpecialClass('TwitterOAuth', 'plugins/twitter/extlib/twitteroauth/twitteroauth.php');
 }
 
-$webapp = Webapp::getInstance();
-$webapp->registerPlugin('twitter', 'TwitterPlugin');
+$webapp_plugin_registrar = PluginRegistrarWebapp::getInstance();
+$webapp_plugin_registrar->registerPlugin('twitter', 'TwitterPlugin');
 
-$crawler = Crawler::getInstance();
-$crawler->registerCrawlerPlugin('TwitterPlugin');
+$crawler_plugin_registrar = PluginRegistrarCrawler::getInstance();
+$crawler_plugin_registrar->registerCrawlerPlugin('TwitterPlugin');

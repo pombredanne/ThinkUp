@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/controller/class.InstallerController.php
  *
- * Copyright (c) 2009-2011 Dwi Widiastuti, Gina Trapani
+ * Copyright (c) 2009-2013 Dwi Widiastuti, Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -25,7 +25,7 @@
  * Web-based application installer.
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Dwi Widiastuti, Gina Trapani
+ * @copyright 2009-2013 Dwi Widiastuti, Gina Trapani
  * @author Dwi Widiastuti <admin[at]diazuwi[dot]web[dot]id>
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  */
@@ -36,22 +36,29 @@ class InstallerController extends ThinkUpController {
      * @var Installer
      */
     private $installer;
+    /**
+     * Pre-set requirements settings for testing only.
+     * @var array
+     */
+    private $reqs;
 
-    public function __construct($session_started=false) {
+    public function __construct($session_started=false, $reqs=null) {
         //Explicitly set TZ (before we have user's choice) to avoid date() warning about using system settings
-        date_default_timezone_set('America/Los_Angeles');
-        Utils::defineConstants();
+        Utils::setDefaultTimezonePHPini();
+        Loader::definePathConstants();
         //Don't call parent constructor because config.inc.php doesn't exist yet
         //Instead, set up the view manager with manual array configuration
         $cfg_array =  array(
-            'site_root_path'=>THINKUP_BASE_URL,
-            'source_root_path'=>THINKUP_ROOT_PATH, 
-            'debug'=>false, 
-            'app_title'=>"ThinkUp", 
+            'site_root_path'=>Utils::getSiteRootPathFromFileSystem(),
+            'source_root_path'=>THINKUP_ROOT_PATH,
+            'datadir_path'=>THINKUP_WEBAPP_PATH.'data/',
+            'debug'=>false,
+            'app_title_prefix'=>'',
             'cache_pages'=>false);
-        $this->view_mgr = new SmartyThinkUp($cfg_array);
+        $this->view_mgr = new ViewManager($cfg_array);
         $this->setPageTitle('Install ThinkUp');
         $this->disableCaching();
+        $this->reqs = $reqs;
     }
 
     public function control() {
@@ -96,8 +103,8 @@ class InstallerController extends ThinkUpController {
                 }
                 throw new InstallerException(
                 'ThinkUp is already installed!<br /> '.$msg.'<br />To reinstall ThinkUp from scratch, delete your '.
-                'config.inc.php file and reload this page.<br /> Otherwise, start <a href="'.THINKUP_BASE_URL.
-                '">using ThinkUp</a>.', Installer::ERROR_INSTALL_COMPLETE);
+                'config.inc.php file and reload this page.<br /> Otherwise, start <a href="'.
+                Utils::getSiteRootPathFromFileSystem(). '">using ThinkUp</a>.', Installer::ERROR_INSTALL_COMPLETE);
             }
             //if we're not in repair mode, check to see if some tables exist, and if so, let user know via Exception
             if (!isset($_GET["step"]) || $_GET['step'] != 'repair') {
@@ -115,16 +122,20 @@ class InstallerController extends ThinkUpController {
         $this->setViewTemplate('install.step1.tpl');
 
         // php version check
-        $php_compat = 0;
+        $php_compat = false;
         if ( $this->installer->checkVersion() ) {
-            $php_compat = 1;
+            $php_compat = true;
         }
         $this->addToView('php_compat', $php_compat);
         $requiredVersion = $this->installer->getRequiredVersion();
         $this->addToView('php_required_version', $requiredVersion['php']);
 
         // libs check
-        $libs = $this->installer->checkDependency();
+        if (isset($this->reqs)) { //testing only
+            $libs = $this->installer->checkDependency($this->reqs);
+        } else {
+            $libs = $this->installer->checkDependency();
+        }
         $libs_compat = true;
         foreach ($libs as $lib) {
             if (!$lib) {
@@ -143,15 +154,24 @@ class InstallerController extends ThinkUpController {
             }
         }
         $this->addToView('permissions_compat', $permissions_compat);
-        $writeable_directories = array(
-            'compiled_view' => $this->view_mgr->compile_dir,
-            'cache' => $this->view_mgr->compile_dir . 'cache');
-        $this->addToView('writeable_directories', $writeable_directories);
+        $this->addToView('writable_data_directory', FileDataManager::getDataPath());
+
+        // session save path permissions check
+        $session_permissions_compat = $this->installer->isSessionDirectoryWritable();
+        $this->addToView('session_permissions_compat', $session_permissions_compat);
+        $this->addToView('writable_session_save_directory', ini_get('session.save_path'));
 
         // other vars set to view
-        $requirements_met = ($php_compat && $libs_compat && $permissions_compat);
+        $requirements_met = ($php_compat && $libs_compat && $permissions_compat && $session_permissions_compat);
         $this->addToView('requirements_met', $requirements_met);
         $this->addToView('subtitle', 'Check System Requirements');
+
+        //If all requirements are met, go to step 2
+        if ($requirements_met) {
+            $this->addSuccessMessage("<strong>Great!</strong> Your system has everything it needs to run ThinkUp.",
+            null, true);
+            $this->step2();
+        }
     }
 
     /**
@@ -159,6 +179,9 @@ class InstallerController extends ThinkUpController {
      */
     private function step2() {
         $this->setViewTemplate('install.step2.tpl');
+        $this->addHeaderJavaScript('assets/js/jstz-1.0.4.min.js');
+        $this->addHeaderJavaScript('assets/js/jqBootstrapValidation.js');
+        $this->addHeaderJavaScript('assets/js/validate-fields.js');
 
         // make sure we have passed step 1
         if ( !$this->installer->checkStep1() ) {
@@ -166,7 +189,7 @@ class InstallerController extends ThinkUpController {
             return;
         }
 
-        $current_tz = isset($_POST['timezone']) ? $_POST['timezone'] : date_default_timezone_get();
+        $current_tz = isset($_POST['timezone']) ? $_POST['timezone'] : '';
 
         $this->addToView('db_name', '');
         $this->addToView('db_user', '');
@@ -177,7 +200,7 @@ class InstallerController extends ThinkUpController {
         $this->addToView('db_port', '');
         $this->addToView('tz_list', $this->getTimeZoneList());
         $this->addToView('current_tz', $current_tz);
-        $this->addToView('site_email', 'you@example.com');
+        $this->addToView('site_email', '');
     }
 
     /**
@@ -209,11 +232,10 @@ class InstallerController extends ThinkUpController {
             $db_config['db_socket']    = $THINKUP_CFG['db_socket'];
             $db_config['db_port']      = $THINKUP_CFG['db_port'];
             $db_config['table_prefix'] = $THINKUP_CFG['table_prefix'];
-            $db_config['GMT_offset']   = $THINKUP_CFG['GMT_offset'];
             $db_config['timezone']     = $THINKUP_CFG['timezone'];
             $email                     = trim($_POST['site_email']);
         } else {
-            // make sure we're not from error of couldn't write config.inc.php
+            // make sure we're not from error or couldn't write config.inc.php
             if ( !isset($_POST['db_user']) && !isset($_POST['db_passwd']) && !isset($_POST['db_name']) &&
             !isset($_POST['db_host']) ) {
                 $this->addErrorMessage("Missing database credentials");
@@ -232,12 +254,6 @@ class InstallerController extends ThinkUpController {
             $db_config['table_prefix'] = trim($_POST['db_prefix']);
             $db_config['timezone']     = trim($_POST['timezone']);
             $email                     = trim($_POST['site_email']);
-
-            // get GMT offset in hours
-            $db_config['GMT_offset'] = timezone_offset_get(
-            new DateTimeZone($_POST['timezone']),
-            new DateTime('now')
-            ) / 3600;
         }
         $db_config['db_type'] = 'mysql'; //default for now
         $password = $_POST['password'];
@@ -247,18 +263,39 @@ class InstallerController extends ThinkUpController {
 
         // check email
         if ( !Utils::validateEmail($email) ) {
-            $this->addErrorMessage("Please enter a valid email address.");
-            $this->setViewTemplate('install.step2.tpl');
+            $this->addErrorMessage("Please enter a valid email address.", "email");
             $display_errors = true;
-        } else if ( $password != $confirm_password || $password == '' ) { //check password
+        }
+
+        if ( $password != $confirm_password || $password == ''
+        || !preg_match("/(?=.{8,})(?=.*[a-zA-Z])(?=.*[0-9])/", $password) ) { //check password
             if ($password != $confirm_password) {
-                $this->addErrorMessage("Your passwords did not match.");
-            } else {
-                $this->addErrorMessage("Please choose a password.");
+                $this->addErrorMessage("Your passwords did not match.", "password");
+            } else if ( $password == '' ) {
+                $this->addErrorMessage("Please choose a password.", "password");
+            } else if ( !preg_match("/(?=.{8,})(?=.*[a-zA-Z])(?=.*[0-9])/", $password) ) {
+                $this->addErrorMessage("Password must be at least 8 characters and contain both numbers and letters.",
+                "password");
             }
-            $this->setViewTemplate('install.step2.tpl');
             $display_errors = true;
-        } elseif (($error = $this->installer->checkDb($db_config)) !== true) { //check db
+        }
+
+        if ($_POST['db_name'] == '') {
+            $this->addErrorMessage("Please enter a database name.", "database_name");
+            $display_errors = true;
+        }
+
+        if ( $_POST['db_host'] == '') {
+            $this->addErrorMessage("Please enter a database host.", "database_host");
+            $display_errors = true;
+        }
+
+        if ($_POST['timezone'] == '') {
+            $this->addErrorMessage("Please select a time zone.", "timezone");
+            $display_errors = true;
+        }
+
+        if (($error = $this->installer->checkDb($db_config)) !== true) { //check db
             if (($p = strpos($error->getMessage(), "Unknown MySQL server host")) !== false ||
             ($p = strpos($error->getMessage(), "Can't connect to MySQL server")) !== false ||
             ($p = strpos($error->getMessage(), "Can't connect to local MySQL server through socket")) !== false ||
@@ -267,13 +304,16 @@ class InstallerController extends ThinkUpController {
             } else {
                 $db_error = $error->getMessage();
             }
+            $disable_xss = true;
+            $db_error = filter_var($db_error, FILTER_SANITIZE_SPECIAL_CHARS);
             $this->addErrorMessage("ThinkUp couldn't connect to your database. The error message is:<br /> ".
-            " <strong>$db_error</strong><br />Please correct your database information and try again.");
-            $this->setViewTemplate('install.step2.tpl');
+            " <strong>$db_error</strong><br />Please correct your database information and try again.",
+            "database", $disable_xss);
             $display_errors = true;
         }
 
         if ( $display_errors ) {
+            $this->setViewTemplate('install.step2.tpl');
             $this->addToView('db_name', $db_config['db_name']);
             $this->addToView('db_user', $db_config['db_user']);
             $this->addToView('db_passwd', $db_config['db_password']);
@@ -298,19 +338,22 @@ class InstallerController extends ThinkUpController {
                 $config_file_contents_str .= htmlentities($line);
             }
             $whoami = @exec('whoami');
+            $disable_xss = true;
             if (!empty($whoami)) {
+                $whoami = filter_var($whoami, FILTER_SANITIZE_SPECIAL_CHARS);
                 $this->addErrorMessage("ThinkUp couldn't write the <code>config.inc.php</code> file.<br /><br />".
                 "Use root (or sudo) to create the file manually, and allow PHP to write to it, by executing the ".
-                "following commands:<br /><code>touch " . escapeshellcmd(THINKUP_WEBAPP_PATH . "config.inc.php") .
-                "</code><br /><code>chown $whoami " . escapeshellcmd(THINKUP_WEBAPP_PATH . 
-                "config.inc.php") ."</code><br /><br />If you don't have root access, create the <code>" . 
-                THINKUP_WEBAPP_PATH . "config.inc.php</code> file manually, and paste the following text into it.".
-                "<br /><br />Click the <strong>Next Step</strong> button below once you did either.");
+                "following commands:<br /><code>sudo touch " . escapeshellcmd(THINKUP_WEBAPP_PATH . "config.inc.php") .
+                "</code><br /><code>sudo chown $whoami " . escapeshellcmd(THINKUP_WEBAPP_PATH .
+                "config.inc.php") ."</code><br /><br />If you don't have root access, create the <code>" .
+                THINKUP_WEBAPP_PATH . "config.inc.php</code> file, show the contents of your config file below," .
+                " and copy and paste the text into the <code>config.inc.php</code> file.",
+                null, $disable_xss);
             } else {
                 $this->addErrorMessage("ThinkUp couldn't write the <code>config.inc.php</code> file.<br /><br />".
-                "You will need to create the <code>" . 
-                THINKUP_WEBAPP_PATH . "config.inc.php</code> file manually, and paste the following text into it.".
-                "<br /><br />Click the <strong>Next Step</strong> button once this is done.");
+                "You will need to create the <code>" .
+                THINKUP_WEBAPP_PATH . "config.inc.php</code> file manually, and paste the following text into it.",
+                null, $disable_xss);
             }
             $this->addToView('config_file_contents', $config_file_contents_str );
             $this->addToView('_POST', $_POST);
@@ -326,24 +369,22 @@ class InstallerController extends ThinkUpController {
         // if empty, we're ready to populate the database with ThinkUp tables
         $this->installer->populateTables($db_config);
 
+        //Set the application server name in app settings for access by command-line scripts
+        Installer::storeServerName();
+
         $owner_dao = DAOFactory::getDAO('OwnerDAO', $db_config);
         if ( !$owner_dao->doesAdminExist() && !$owner_dao->doesOwnerExist($email)) { // create admin if not exists
-            $session = new Session();
-            $activation_code = rand(1000, 9999);
-            $crypt_pass = $session->pwdcrypt($password);
-            //$owner_dao->insertActivatedAdmin($email, $crypt_pass, $full_name);
-            $owner_dao->createAdmin($email, $crypt_pass, $activation_code, $full_name);
-
+            $activation_code = $owner_dao->createAdmin($email, $password, $full_name);
             // view for email
             $cfg_array =  array(
-            'site_root_path'=>THINKUP_BASE_URL,
-            'source_root_path'=>THINKUP_ROOT_PATH, 
-            'debug'=>false, 
-            'app_title'=>"ThinkUp", 
+            'site_root_path'=>Utils::getSiteRootPathFromFileSystem(),
+            'source_root_path'=>THINKUP_ROOT_PATH,
+            'debug'=>false,
+            'app_title_prefix'=>"",
             'cache_pages'=>false);
-            $email_view = new SmartyThinkUp($cfg_array);
+            $email_view = new ViewManager($cfg_array);
             $email_view->caching=false;
-            $email_view->assign('server', $_SERVER['HTTP_HOST'] );
+            $email_view->assign('application_url', Utils::getApplicationURL() );
             $email_view->assign('email', urlencode($email) );
             $email_view->assign('activ_code', $activation_code );
             $message = $email_view->fetch('_email.registration.tpl');
@@ -358,7 +399,7 @@ class InstallerController extends ThinkUpController {
         $this->addToView('errors', $this->installer->getErrorMessages() );
         $this->addToView('username', $email);
         $this->addToView('password', $password);
-        $this->addToView('login_url', THINKUP_BASE_URL . 'session/login.php');
+        $this->addToView('login_url', Utils::getSiteRootPathFromFileSystem() . 'session/login.php');
     }
 
     /**
@@ -430,7 +471,7 @@ class InstallerController extends ThinkUpController {
                         $info .= "<li>$msg</li>";
                     }
                     $info .= '</ul>';
-                    $this->addInfoMessage($info);
+                    $this->addInfoMessage($info, null, true);
                 }
                 $this->addToView('action_form', $_SERVER['REQUEST_URI']);
             }
@@ -460,7 +501,7 @@ class InstallerController extends ThinkUpController {
             }
 
             //avoid undefined offset error
-            if(!isset($option_data[1])) {
+            if (!isset($option_data[1])) {
                 $option_data[1] = $option_data[0];
             }
 

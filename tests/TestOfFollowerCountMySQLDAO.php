@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfFollowerCountMySQLDAO.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,11 +23,11 @@
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 
 class TestOfFollowerCountMySQLDAO extends ThinkUpUnitTestCase {
 
@@ -51,185 +51,272 @@ class TestOfFollowerCountMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual($result, 1, 'One count inserted');
     }
 
-    public function testGetDayHistoryNoGaps() {
+    public function testGetDayHistoryNoGapsMilestoneNotInSight() {
         $format = 'n/j';
         $date = date ( $format );
 
         $todays_day_of_the_week = date('w');
         $this->debug("It's currently the ".$todays_day_of_the_week." day of the week");
         if ($todays_day_of_the_week == 0 ) {
-            $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-2d', 'count'=>140);
+            $follower_count = array('network_user_id'=>'930061', 'network'=>'twitter', 'date'=>'-2d', 'count'=>14);
             $builder1 = FixtureBuilder::build('follower_count', $follower_count);
 
-            $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-3d', 'count'=>100);
+            $follower_count = array('network_user_id'=>'930061', 'network'=>'twitter', 'date'=>'-3d', 'count'=>10);
             $builder2 = FixtureBuilder::build('follower_count', $follower_count);
 
-            $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-4d', 'count'=>120);
+            $follower_count = array('network_user_id'=>'930061', 'network'=>'twitter', 'date'=>'-4d', 'count'=>12);
             $builder3 = FixtureBuilder::build('follower_count', $follower_count);
         } else {
-            $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-1d', 'count'=>140);
+            $follower_count = array('network_user_id'=>'930061', 'network'=>'twitter', 'date'=>'-1d', 'count'=>14);
             $builder1 = FixtureBuilder::build('follower_count', $follower_count);
 
-            $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-2d', 'count'=>100);
+            $follower_count = array('network_user_id'=>'930061', 'network'=>'twitter', 'date'=>'-2d', 'count'=>10);
             $builder2 = FixtureBuilder::build('follower_count', $follower_count);
 
-            $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-3d', 'count'=>120);
+            $follower_count = array('network_user_id'=>'930061', 'network'=>'twitter', 'date'=>'-3d', 'count'=>12);
+            $builder3 = FixtureBuilder::build('follower_count', $follower_count);
+        }
+
+        $dao = new FollowerCountMySQLDAO();
+        $result = $dao->getHistory('930061', 'twitter', 'DAY', 3);
+        $this->assertEqual(sizeof($result), 4, '4 sets of data returned--history, trend, and milestone, and vis_data');
+
+        $this->debug(Utils::varDumpToString($result));
+        //check history
+        $this->assertEqual(sizeof($result['history']), 3, '3 counts returned');
+        $format = 'm/d/Y';
+        if ($todays_day_of_the_week == 0 ) {
+            $date_ago = date ($format, strtotime('-4 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 12);
+
+            $date_ago = date ($format, strtotime('-3 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 10);
+
+            $date_ago = date ($format, strtotime('-2 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 14);
+        } else  {
+            $date_ago = date ($format, strtotime('-3 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 12);
+
+            $date_ago = date ($format, strtotime('-2 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 10);
+
+            $date_ago = date ($format, strtotime('-1 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 14);
+        }
+
+        //check trend
+        $this->assertEqual($result['trend'], 1);
+
+        //check milestone
+        //latest follower count is 14, next milestone is 100 followers
+        //with a 1+/day trend, this should take 86 days
+        //that's over the "don't feel bad about yourself" threshold of 10, so milestone should be null
+        $this->assertNull($result['milestone']);
+
+        $this->assertNotNull($result['vis_data']);
+    }
+
+    public function testGetDayHistoryFromSpecificStartDate() {
+        $builders = array();
+        $format = 'Y-m-d';
+        $date = date ( $format );
+
+        $todays_day_of_the_week = date('w');
+        $this->debug("It's currently the ".$todays_day_of_the_week." day of the week");
+        $follower_count = array('network_user_id'=>'930061', 'network'=>'twitter', 'date'=>'-40d', 'count'=>90);
+        $builders[] = FixtureBuilder::build('follower_count', $follower_count);
+
+        $follower_count = array('network_user_id'=>'930061', 'network'=>'twitter', 'date'=>'-41d', 'count'=>70);
+        $builders[] = FixtureBuilder::build('follower_count', $follower_count);
+
+        $follower_count = array('network_user_id'=>'930061', 'network'=>'twitter', 'date'=>'-42d', 'count'=>50);
+        $builders[] = FixtureBuilder::build('follower_count', $follower_count);
+
+        $follower_count = array('network_user_id'=>'930061', 'network'=>'twitter', 'date'=>'-43d', 'count'=>30);
+        $builders[] = FixtureBuilder::build('follower_count', $follower_count);
+
+        $follower_count = array('network_user_id'=>'930061', 'network'=>'twitter', 'date'=>'-44d', 'count'=>10);
+        $builders[] = FixtureBuilder::build('follower_count', $follower_count);
+
+        $dao = new FollowerCountMySQLDAO();
+        $date_ago = date ($format, strtotime('-40 day'.$date));
+        $this->debug("Getting history starting on ".$date_ago);
+        $result = $dao->getHistory('930061', 'twitter', 'DAY', 5, $date_ago);
+        $this->assertEqual(sizeof($result), 4, '4 sets of data returned--history, trend, and milestone, and vis_data');
+
+        $this->debug(Utils::varDumpToString($result));
+        //check history
+        $this->assertEqual(sizeof($result['history']), 5);
+
+        $format = 'm/d/Y';
+        if ($todays_day_of_the_week == 0 ) {
+            $date_ago = date ($format, strtotime('-40 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 90);
+
+            $date_ago = date ($format, strtotime('-41 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 70);
+
+            $date_ago = date ($format, strtotime('-42 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 50);
+
+            $date_ago = date ($format, strtotime('-43 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 30);
+        } else  {
+            $date_ago = date ($format, strtotime('-41 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 70);
+
+            $date_ago = date ($format, strtotime('-42 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 50);
+
+            $date_ago = date ($format, strtotime('-43 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 30);
+        }
+
+        //check trend
+        $this->assertEqual($result['trend'], 16);
+
+        //check milestone
+        //latest follower count is 90, next milestone is 100 followers
+        //with a 16+/day trend, this should take 1 day
+        $this->debug(Utils::varDumpToString($result['milestone']));
+        $this->assertEqual($result['milestone']["next_milestone"], 100);
+        $this->assertEqual($result['milestone']["will_take"], 1);
+
+        $this->assertNotNull($result['vis_data']);
+    }
+
+    public function testGetDayHistoryNoGapsMilestoneInSight() {
+        $format = 'n/j';
+        $date = date ( $format );
+
+        $todays_day_of_the_week = date('w');
+        $this->debug("It's currently the ".$todays_day_of_the_week." day of the week");
+        if ($todays_day_of_the_week == 0 ) {
+            $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-2d', 'count'=>940);
+            $builder1 = FixtureBuilder::build('follower_count', $follower_count);
+
+            $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-3d', 'count'=>900);
+            $builder2 = FixtureBuilder::build('follower_count', $follower_count);
+
+            $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-4d', 'count'=>920);
+            $builder3 = FixtureBuilder::build('follower_count', $follower_count);
+        } else {
+            $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-1d', 'count'=>940);
+            $builder1 = FixtureBuilder::build('follower_count', $follower_count);
+
+            $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-2d', 'count'=>900);
+            $builder2 = FixtureBuilder::build('follower_count', $follower_count);
+
+            $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-3d', 'count'=>920);
             $builder3 = FixtureBuilder::build('follower_count', $follower_count);
         }
 
         $dao = new FollowerCountMySQLDAO();
         $result = $dao->getHistory(930061, 'twitter', 'DAY', 3);
-        $this->assertEqual(sizeof($result), 5, '5 sets of data returned--history, percentages, Y axis, trend, '.
-        'milestone');
+        $this->assertEqual(sizeof($result), 4, '4 sets of data returned--history, trend, and milestone, and vis_data');
 
         $this->debug(Utils::varDumpToString($result));
         //check history
         $this->assertEqual(sizeof($result['history']), 3, '3 counts returned');
-
+        $format = 'm/d/Y';
         if ($todays_day_of_the_week == 0 ) {
             $date_ago = date ($format, strtotime('-4 day'.$date));
-            $this->assertEqual($result['history'][$date_ago], 120);
+            $this->assertEqual($result['history'][$date_ago], 920);
 
             $date_ago = date ($format, strtotime('-3 day'.$date));
-            $this->assertEqual($result['history'][$date_ago], 100);
+            $this->assertEqual($result['history'][$date_ago], 900);
 
             $date_ago = date ($format, strtotime('-2 day'.$date));
-            $this->assertEqual($result['history'][$date_ago], 140);
+            $this->assertEqual($result['history'][$date_ago], 940);
         } else  {
             $date_ago = date ($format, strtotime('-3 day'.$date));
-            $this->assertEqual($result['history'][$date_ago], 120);
+            $this->assertEqual($result['history'][$date_ago], 920);
 
             $date_ago = date ($format, strtotime('-2 day'.$date));
-            $this->assertEqual($result['history'][$date_ago], 100);
+            $this->assertEqual($result['history'][$date_ago], 900);
 
             $date_ago = date ($format, strtotime('-1 day'.$date));
-            $this->assertEqual($result['history'][$date_ago], 140);
+            $this->assertEqual($result['history'][$date_ago], 940);
         }
-
-        //check percentages
-        $this->assertEqual(sizeof($result['percentages']), 3, '3 percentages returned');
-        $this->assertEqual($result['percentages'][0], 50);
-        $this->assertEqual($result['percentages'][1], 0);
-        $this->assertEqual($result['percentages'][2], 100);
-
-        //check Y-axis
-        $this->assertEqual(sizeof($result['y_axis']), 5, '5 Y axis points returned');
-        $this->assertEqual($result['y_axis'][0], 100);
-        $this->assertEqual($result['y_axis'][1], 110);
-        $this->assertEqual($result['y_axis'][2], 120);
-        $this->assertEqual($result['y_axis'][3], 130);
-        $this->assertEqual($result['y_axis'][4], 140);
 
         //check trend
         $this->assertEqual($result['trend'], 7);
 
         //check milestone
-        //latest follower count is 140, next milestone is 1,000 followers
-        //with a 7+/day trend, this should take 123 days
+        //latest follower count is 940, next milestone is 1,000 followers
+        //with a 7+/day trend, this should take 9 days
         $this->assertEqual($result['milestone']['next_milestone'], 1000);
-        $this->assertEqual($result['milestone']['will_take'], 123);
+        $this->assertEqual($result['milestone']['will_take'], 9);
         $this->assertEqual($result['milestone']['units_of_time'], 'DAY');
     }
 
     public function testGetDayHistoryWeekNoGaps() {
-        $format = 'n/j';
+        $format = 'm/j';
         $date = date ( $format );
 
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-1d', 'count'=>140);
-        $builder1 = FixtureBuilder::build('follower_count', $follower_count);
+        //how many days ago was Saturday?  Sun is day 0, Saturday is day 6
+        $days_ago = date('w') + 1;
+        $this->debug($days_ago." days ago it was Saturday");
 
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-2d', 'count'=>139);
-        $builder2 = FixtureBuilder::build('follower_count', $follower_count);
+        $builders = array();
 
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-3d', 'count'=>138);
-        $builder3 = FixtureBuilder::build('follower_count', $follower_count);
-
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-4d', 'count'=>137);
-        $builder4 = FixtureBuilder::build('follower_count', $follower_count);
-
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-5d', 'count'=>136);
-        $builder5 = FixtureBuilder::build('follower_count', $follower_count);
-
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-6d', 'count'=>135);
-        $builder6 = FixtureBuilder::build('follower_count', $follower_count);
-
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-7d', 'count'=>134);
-        $builder7 = FixtureBuilder::build('follower_count', $follower_count);
-
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-8d', 'count'=>133);
-        $builder8 = FixtureBuilder::build('follower_count', $follower_count);
-
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-9d', 'count'=>132);
-        $builder9 = FixtureBuilder::build('follower_count', $follower_count);
-
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-10d', 'count'=>131);
-        $builder10 = FixtureBuilder::build('follower_count', $follower_count);
-
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-11d', 'count'=>130);
-        $builder11 = FixtureBuilder::build('follower_count', $follower_count);
-
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-12d', 'count'=>129);
-        $builder12 = FixtureBuilder::build('follower_count', $follower_count);
-
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-13d', 'count'=>128);
-        $builder13 = FixtureBuilder::build('follower_count', $follower_count);
-
-        $follower_count = array('network_user_id'=>930061, 'network'=>'twitter', 'date'=>'-14d', 'count'=>127);
-        $builder14 = FixtureBuilder::build('follower_count', $follower_count);
+        //If yesterday wasn't Saturday, fill in the gap from yesterday to last Saturday
+        if ($days_ago > 1) {
+            $gap = 1;
+            while ($gap < $days_ago) {
+                $follower_count = array('network_user_id'=>'930061', 'network'=>'twitter', 'date'=>'-'.$gap.'d',
+                'count'=>145);
+                $builders[] = FixtureBuilder::build('follower_count', $follower_count);
+                $gap++;
+            }
+        }
+        //Starting at last Saturday, fill in 14 days of follower counts
+        $day_counter = 0;
+        while ($day_counter < 14) {
+            $follower_count = array('network_user_id'=>'930061', 'network'=>'twitter', 'date'=>'-'.$days_ago.'d',
+            'count'=>(140-$day_counter) );
+            $builders[] = FixtureBuilder::build('follower_count', $follower_count);
+            $day_counter++;
+            $days_ago++;
+        }
 
         $dao = new FollowerCountMySQLDAO();
-        $result = $dao->getHistory(930061, 'twitter', 'WEEK', 3);
-        $this->assertEqual(sizeof($result), 5, '5 sets of data returned--history, percentages, Y axis, trend, '.
-        'milestone');
+        $result = $dao->getHistory('930061', 'twitter', 'WEEK', 3);
+        $this->assertEqual(sizeof($result), 4, '4 sets of data returned--history, trend, and milestone, and vis_data');
 
         $this->debug(Utils::varDumpToString($result));
 
-        $todays_day_of_the_week = date('w');
-        $this->debug("It's currently ".$todays_day_of_the_week." day of the week. You can test all days except ".
-        "Sunday");
-        if ($todays_day_of_the_week != 0) {
-            //check history
-            $this->assertEqual(sizeof($result['history']), 3, '3 counts returned');
-        }
+        if (date('w')  != 1 && date('w')  != 0) { //Don't test on Sunday or Saturday
+            $this->assertEqual(sizeof($result['history']), 3);
 
-        $date_ago = date ($format, strtotime('-1 day'.$date));
-        $this->assertEqual($result['history'][$date_ago], 140);
+            // Yesterday count was 145
+            $date_ago = date ($format, strtotime('-1 day'.$date));
+            $this->assertEqual($result['history'][$date_ago], 145);
 
-        //check percentages
-        if ($todays_day_of_the_week != 0) {
-            $this->assertEqual(sizeof($result['percentages']), 3, '3 percentages returned');
-        }
-        //Difficult to test because the values change depending on what day of the week you're running the tests
-        //        $this->assertEqual($result['percentages'][0], 0);
-        //        $this->assertEqual($result['percentages'][1], 78);
-        //        $this->assertEqual($result['percentages'][2], 100);
+            // Last Saturday count was 140
+            $days_ago_till_saturday = date('w') + 1;
+            $last_saturday= date ($format, strtotime('-'.$days_ago_till_saturday.' day'.$date));
+            $this->debug('Last Saturday was '.$last_saturday);
+            $this->assertEqual($result['history'][$last_saturday], 140);
 
-        //check Y-axis
-        if ($todays_day_of_the_week != 0) {
+            // Saturday before last was 133
+            $days_ago_till_saturday = date('w') + 8;
+            $last_saturday= date ($format, strtotime('-'.$days_ago_till_saturday.' day'.$date));
+            $this->debug('Saturday before last was '.$last_saturday);
+            $this->assertEqual($result['history'][$last_saturday], 133);
 
-            $this->assertEqual(sizeof($result['y_axis']), 5, '5 Y axis points returned');
-        }
-        //Difficult to test because the values change depending on what day of the week you're running the tests
-        //        $this->assertEqual($result['y_axis'][0], 131);
-        //        $this->assertEqual($result['y_axis'][1], 133.25);
-        //        $this->assertEqual($result['y_axis'][2], 135.5);
-        //        $this->assertEqual($result['y_axis'][3], 137.75);
-        //        $this->assertEqual($result['y_axis'][4], 140);
+            // Trend is (145 - 133) / 3 = 4
+            $this->assertEqual($result['trend'], 4);
 
-        //check trend
-        //$this->assertEqual($result['trend'], 3);
-
-        //check milestone
-        //latest follower count is 140, next milestone is 1,000 followers
-        //with a 7+/day trend, this should take 123 days
-        if ($todays_day_of_the_week != 0) {
-            $this->assertEqual($result['milestone']['next_milestone'], 1000);
-            //$this->assertEqual($result['milestone']['will_take'], 287);
-            $this->assertEqual($result['milestone']['units_of_time'], 'WEEK');
+            // latest follower count is 145, next milestone is 200 followers
+            // with a 4+/day trend, this should take 13.75 days, rounded to 14
+            $this->assertEqual($result['milestone']['will_take'], 14);
         }
     }
 
     public function testGetDayHistoryWithGaps() {
+        // Filling gaps was only required by the old visualization library
         $format = 'n/j';
         $date = date ( $format );
 
@@ -244,44 +331,26 @@ class TestOfFollowerCountMySQLDAO extends ThinkUpUnitTestCase {
 
         $dao = new FollowerCountMySQLDAO();
         $result = $dao->getHistory(930061, 'twitter', 'DAY', 5);
-        $this->assertEqual(sizeof($result), 5, '5 sets of data returned--history, percentages, Y axis, trend, '.
-        'milestone');
+        $this->assertEqual(sizeof($result), 4, '4 sets of data returned--history, trend, and milestone, and vis_data');
 
         //check history
-        $this->assertEqual(sizeof($result['history']), 5, '5 counts returned');
-
+        $this->assertEqual(sizeof($result['history']), 3);
+        $format = 'm/d/Y';
         $this->debug(Utils::varDumpToString($result));
         $date_ago = date ($format, strtotime('-5 day'.$date));
         $this->assertEqual($result['history'][$date_ago], 120);
 
         $date_ago = date ($format, strtotime('-4 day'.$date));
-        $this->assertEqual($result['history'][$date_ago], 'no data');
+        $this->assertTrue(!isset($result['history'][$date_ago]), 'gap filled');
 
         $date_ago = date ($format, strtotime('-3 day'.$date));
-        $this->assertEqual($result['history'][$date_ago], 'no data');
+        $this->assertTrue(!isset($result['history'][$date_ago]), 'gap filled');
 
         $date_ago = date ($format, strtotime('-2 day'.$date));
         $this->assertEqual($result['history'][$date_ago], 100);
 
         $date_ago = date ($format, strtotime('-1 day'.$date));
         $this->assertEqual($result['history'][$date_ago], 140);
-
-        //check percentages
-        $this->assertEqual(sizeof($result['percentages']), 5, '5 percentages returned');
-        $this->assertEqual($result['percentages'][0], 50);
-        $this->assertEqual($result['percentages'][1], 0);
-        $this->assertEqual($result['percentages'][2], 0);
-        $this->assertEqual($result['percentages'][3], 0);
-        $this->assertEqual($result['percentages'][4], 100);
-
-        //check y-axis
-        $this->assertEqual(sizeof($result['y_axis']), 5, '5 Y axis points returned');
-
-        $this->assertEqual($result['y_axis'][0], 100);
-        $this->assertEqual($result['y_axis'][1], 110);
-        $this->assertEqual($result['y_axis'][2], 120);
-        $this->assertEqual($result['y_axis'][3], 130);
-        $this->assertEqual($result['y_axis'][4], 140);
 
         //check trend
         $this->assertFalse($result['trend']);
@@ -308,17 +377,15 @@ class TestOfFollowerCountMySQLDAO extends ThinkUpUnitTestCase {
 
         $dao = new FollowerCountMySQLDAO();
         $result = $dao->getHistory(930061, 'twitter', 'DAY', 4);
-        $this->assertEqual(sizeof($result), 5, '5 sets of data returned--history, percentages, Y axis, trend, '.
-        'milestone');
+        $this->assertEqual(sizeof($result), 4, '4 sets of data returned--history, trend, and milestone, and vis_data');
 
         $this->debug(Utils::varDumpToString($result));
 
         //check milestone
         //latest follower count is 1.7M, next milestone is 2M
         //with a 2786+/day trend, this should take 82 days
-        $this->assertEqual($result['milestone']['next_milestone'], 2000000);
-        $this->assertEqual($result['milestone']['will_take'], 82);
-        $this->assertEqual($result['milestone']['units_of_time'], 'DAY');
+        //beyond our "don't feel bad about yourself" threshold of 10, so should be null
+        $this->assertNull($result['milestone']);
     }
 
     public function testTrendMillionPlusFollowers2() {
@@ -339,16 +406,14 @@ class TestOfFollowerCountMySQLDAO extends ThinkUpUnitTestCase {
 
         $dao = new FollowerCountMySQLDAO();
         $result = $dao->getHistory(930061, 'twitter', 'DAY', 4);
-        $this->assertEqual(sizeof($result), 5, '5 sets of data returned--history, percentages, Y axis, trend, '.
-        'milestone');
+        $this->assertEqual(sizeof($result), 4, '4 sets of data returned--history, trend, and milestone, and vis_data');
 
         $this->debug(Utils::varDumpToString($result));
 
         //check milestone
         //latest follower count is 1.7M, next milestone is 2M
         //with a 2786+/day trend, this should take 82 days
-        $this->assertEqual($result['milestone']['next_milestone'], 1500000);
-        $this->assertEqual($result['milestone']['will_take'], 82);
-        $this->assertEqual($result['milestone']['units_of_time'], 'DAY');
+        //beyond our "don't feel bad about yourself" threshold of 10, so should be null
+        $this->assertNull($result['milestone']);
     }
 }

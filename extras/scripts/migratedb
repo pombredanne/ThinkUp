@@ -10,13 +10,13 @@ echo "CREATE DATABASE $db_name COLLATE utf8_bin;" | $mysql -u $db_user -p$db_pas
 for f in *.sql.migration
 do
   echo "mysql -u $db_user -p$db_password $db_name < $f"
-  cat $f | $mysql -u $db_user -p$db_password $db_name
+  cat $f | sed 's/#rollback=[0-9]*//' | $mysql -u $db_user -p$db_password $db_name
 done
 
 for f in *.sql
 do
   echo "mysql -u $db_user -p$db_password $db_name < $f"
-  cat $f | $mysql -u $db_user -p$db_password $db_name
+  cat $f | sed 's/#rollback=[0-9]*//' | $mysql -u $db_user -p$db_password $db_name
 done
 
 now=`date '+%Y-%m-%d'`
@@ -31,7 +31,7 @@ $mysqldump --create-options --skip-set-charset --skip-add-drop-table --no-data -
 
 
 ## set up app db version option
-DB_VERSION=`cat ../../../install/version.php | grep 'THINKUP_VERSION =' | grep  -o '[0-9]*\.[0-9]*'`;
+DB_VERSION=`php ../../../../extras/scripts/getversion.php`;
 
 echo "
 --
@@ -46,12 +46,29 @@ echo "
 --
 
 INSERT INTO tu_plugins (name , folder_name, description, author, homepage, version, is_active )
-VALUES ('Twitter', 'twitter', 'Twitter support', 'Gina Trapani', 'http://thinkupapp.com', '0.01', '1'); " >> build-db_mysql.sql
+VALUES ('Twitter', 'twitter', 'Twitter support', 'Gina Trapani', 'http://thinkup.com', '0.01', '1');
+
+INSERT INTO tu_plugins (name , folder_name, description, author, homepage, version, is_active )
+VALUES ('Facebook', 'facebook', 'Facebook support', 'Gina Trapani', 'http://thinkup.com', '0.01', '1');
+
+INSERT INTO tu_plugins (name , folder_name, description, author, homepage, version, is_active )
+VALUES ('Foursquare', 'foursquare', 'Foursquare support', 'Aaron Kalair', 'http://thinkup.com', '0.01', '1');
+
+INSERT INTO tu_plugins (name , folder_name, description, author, homepage, version, is_active )
+VALUES ('Google+', 'googleplus', 'Google+ support', 'Gina Trapani', 'http://thinkup.com', '0.01', '1');
+
+INSERT INTO tu_plugins (name , folder_name, description, author, homepage, version, is_active )
+VALUES ('Expand URLs', 'expandurls', 'Expand shortened links.', 'Gina Trapani', 'http://thinkup.com', '0.01', '1');
+
+INSERT INTO tu_plugins (name , folder_name, description, author, homepage, version, is_active )
+VALUES ('Insights Generator', 'insightsgenerator', 'Pluggable plugin populates the insights stream.', 'Gina Trapani', 'http://thinkup.com', '0.01', '1');" >> build-db_mysql.sql
 
 
 mv build-db_mysql.sql ../.
 
+cd ..
+
 echo "
 
 Check the output for errors.
-Complete build script generated and saved as thinkup/webapp/install/sql/build-db_mysql.sql"
+Complete build script generated and saved as $(pwd)/build-db_mysql.sql"

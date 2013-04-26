@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfLogger.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,11 +23,11 @@
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 class TestOfLogger extends ThinkUpBasicUnitTestCase {
 
     public function setUp() {
@@ -216,14 +216,20 @@ class TestOfLogger extends ThinkUpBasicUnitTestCase {
 
         $messages = null;
         $messages = file($config->getValue('log_location'));
-        $this->assertPattern('/TestOfLogger: <span style="color:black">This is a user info message<\/span><br >/',
+
+        $this->assertPattern('/<td class="crawl-log-component">TestOfLogger: <\/td> <td class="control-group '.
+        'warning">This is a user info message<\/td>/i',
         $messages[sizeof($messages) - 4]);
-        $this->assertPattern('/TestOfLogger: <span style="color:red">This is a user error message<\/span><br >/',
+        $this->assertPattern('/<td class="crawl-log-component">TestOfLogger: <\/td> <td class="control-group error">'.
+        'This is a user error message<\/td>/i',
         $messages[sizeof($messages) - 3]);
-        $this->assertPattern('/TestOfLogger: <span style="color:red">This is an error message<\/span><br >/',
+        $this->assertPattern('/<td class="crawl-log-component">TestOfLogger: <\/td> <td class="control-group error"'.
+        '>This is an error message<\/td>/i',
         $messages[sizeof($messages) - 2]);
-        $this->assertPattern('/TestOfLogger: <span style="color:green">This is a user success message<\/span><br >/',
+        $this->assertPattern('/<td class="crawl-log-component">TestOfLogger: <\/td> <td class="control-group success">'.
+        'This is a user success message<\/td>/i',
         $messages[sizeof($messages) - 1]);
+
         $logger->close();
     }
 
@@ -233,5 +239,17 @@ class TestOfLogger extends ThinkUpBasicUnitTestCase {
 
         $logger = Logger::getInstance();
         //        $logger->logInfo('Singleton logger should echo this', __METHOD__.','.__LINE__);
+        $logger->close();
+    }
+
+    public function testStreamLogger() {
+        $config = Config::getInstance();
+        $config->setValue('log_location', false);
+
+        $logger = Logger::getInstance('stream_log_location');
+        $logger->logInfo('Streaming test log info message', __METHOD__.','.__LINE__);
+        $logger->close();
+        $messages = file($config->getValue('stream_log_location'));
+        $this->assertPattern('/Streaming test log info message/', $messages[sizeof($messages) - 2]);
     }
 }

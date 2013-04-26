@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfConfig.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Mark Wilkie
+ * Copyright (c) 2009-2013 Gina Trapani, Mark Wilkie
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -22,14 +22,14 @@
  *
  * Test of Config object
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Mark Wilkie
+ * @copyright 2009-2013 Gina Trapani, Mark Wilkie
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
 
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 
 class TestOfConfig extends ThinkUpUnitTestCase {
 
@@ -37,7 +37,6 @@ class TestOfConfig extends ThinkUpUnitTestCase {
         parent::setUp();
         $this->logger = Logger::getInstance();
         $this->config = Config::getInstance();
-        $this->prefix = $this->config->getValue('table_prefix');
         $optiondao = new OptionMySQLDAO();
         $this->pdo = $optiondao->connect();
     }
@@ -57,8 +56,8 @@ class TestOfConfig extends ThinkUpUnitTestCase {
     }
 
     public function testGetValuesArray() {
-        require THINKUP_ROOT_PATH.'webapp/config.inc.php';
-        require THINKUP_ROOT_PATH.'webapp/install/version.php';
+        require THINKUP_WEBAPP_PATH.'config.inc.php';
+        require THINKUP_WEBAPP_PATH.'install/version.php';
         $config = Config::getInstance();
         //tests assume profiler and caching is off
         $THINKUP_CFG['cache_pages']=false;
@@ -108,7 +107,9 @@ class TestOfConfig extends ThinkUpUnitTestCase {
         $this->assertEqual($config->getValue('recaptcha_private_key'), '', "uses default app config value");
         $this->assertEqual($config->getValue('recaptcha_public_key'), '', "uses default app config value");
 
-        $this->unsetArray($_SESSION);
+        if (isset($_SESSION)) {
+            $this->unsetArray($_SESSION);
+        }
 
         $bvalue = array('namespace' => OptionDAO::APP_OPTIONS, 'option_name' => 'recaptcha_enable',
         'option_value' => 'false');
@@ -118,7 +119,9 @@ class TestOfConfig extends ThinkUpUnitTestCase {
         $this->assertEqual($config->getValue('recaptcha_private_key'), '', "uses default app config value");
         $this->assertEqual($config->getValue('recaptcha_public_key'), '', "uses default app config value");
 
-        $this->unsetArray($_SESSION);
+        if (isset($_SESSION)) {
+            $this->unsetArray($_SESSION);
+        }
         FixtureBuilder::truncateTable('options');
         $bvalue['option_value'] = 'true';
         $bvalue2 = array('namespace' => OptionDAO::APP_OPTIONS, 'option_name' => 'recaptcha_private_key',
@@ -149,6 +152,15 @@ class TestOfConfig extends ThinkUpUnitTestCase {
         $this->assertEqual($config->getGMTOffset('January 1, 2010'), -5);
         $this->assertEqual($config->getGMTOffset('August 1, 2010'), -4);
 
+        $this->restoreConfigFile();
+    }
+
+    public function testGetUnsetDefaultValue() {
+        Config::destroyInstance();
+        $this->removeConfigFile();
+        $config = Config::getInstance(array('timezone' => 'America/Los_Angeles'));
+        $this->assertEqual($config->getValue('app_title_prefix'), '');
+        $this->assertNotNull($config->getValue('app_title_prefix'));
         $this->restoreConfigFile();
     }
 }

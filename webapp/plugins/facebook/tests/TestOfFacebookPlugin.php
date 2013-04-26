@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/plugins/facebook/tests/TestOfFacebookPlugin.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,55 +23,101 @@
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
-require_once 'tests/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/web_tester.php';
+require_once dirname(__FILE__) . '/../../../../tests/init.tests.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/web_tester.php';
 
-require_once THINKUP_ROOT_PATH.'webapp/plugins/facebook/model/class.FacebookPlugin.php';
+require_once THINKUP_WEBAPP_PATH.'plugins/facebook/model/class.FacebookPlugin.php';
+require_once THINKUP_WEBAPP_PATH.'plugins/facebook/model/class.FacebookCrawler.php';
+require_once THINKUP_WEBAPP_PATH.'plugins/facebook/tests/classes/mock.FacebookGraphAPIAccessor.php';
+require_once THINKUP_WEBAPP_PATH.'plugins/facebook/tests/classes/mock.facebook.php';
 
 class TestOfFacebookPlugin extends ThinkUpUnitTestCase {
 
     public function setUp() {
         parent::setUp();
-        $webapp = Webapp::getInstance();
-        $webapp->registerPlugin('facebook', 'FacebookPlugin');
-        $webapp->setActivePlugin('facebook');
+        $webapp_plugin_registrar = PluginRegistrarWebapp::getInstance();
+        $webapp_plugin_registrar->registerPlugin('facebook', 'FacebookPlugin');
+        $webapp_plugin_registrar->setActivePlugin('facebook');
     }
 
     public function tearDown() {
         parent::tearDown();
     }
 
+    public function testConstructor() {
+        $plugin = new FacebookPlugin();
+        $this->assertIsA($plugin, 'FacebookPlugin');
+        $this->assertEqual(count($plugin->required_settings), 2);
+        $this->assertFalse($plugin->isConfigured());
+    }
+
     public function testMenuItemRegistration() {
-        $webapp = Webapp::getInstance();
+        $webapp_plugin_registrar = PluginRegistrarWebapp::getInstance();
         $logger = Logger::getInstance();
         $pd = DAOFactory::getDAO('PostDAO');
         $instance = new Instance();
         $instance->network_user_id = 1;
 
-        $menus = $webapp->getDashboardMenu($instance);
-        $posts_menu = $menus["all_facebook_posts"];
+        $menus = $webapp_plugin_registrar->getDashboardMenu($instance);
+        $posts_menu = $menus["posts-all"];
 
-        $this->assertEqual(sizeof($menus), 3, "Test number of post tabs");
-        $first_post_tab = $menus['all_facebook_posts'];
-        $this->assertEqual($first_post_tab->name, "All", "Test name of first post tab");
-        $this->assertEqual($first_post_tab->description, "", "Test description of first post tab");
+        $this->assertEqual(sizeof($menus), 7);
+        $post_tab = $menus['posts-all'];
+        $this->assertEqual($post_tab->name, "All posts");
+        $this->assertEqual($post_tab->description, "All your status updates");
 
-        $first_post_tab_datasets = $first_post_tab->getDatasets();
-        $first_post_tab_dataset = $first_post_tab_datasets[0];
-        $this->assertEqual($first_post_tab_dataset->name, "all_facebook_posts",
-        "Test first post tab's first dataset name");
-        $this->assertEqual($first_post_tab_dataset->dao_name, 'PostDAO');
-        $this->assertEqual($first_post_tab_dataset->dao_method_name, "getAllPosts",
-        "Test first post tab's first dataset fetching method");
+        $post_tab_datasets = $post_tab->getDatasets();
+        $this->assertEqual(count($post_tab_datasets), 1);
+        $post_tab_dataset = $post_tab_datasets[0];
+        $this->assertEqual($post_tab_dataset->name, "all_facebook_posts");
+        $this->assertEqual($post_tab_dataset->dao_name, 'PostDAO');
+        $this->assertEqual($post_tab_dataset->dao_method_name, "getAllPosts");
+
+        $post_tab = $menus['posts-mostreplies'];
+        $this->assertEqual($post_tab->name, "Most replied-to");
+        $this->assertEqual($post_tab->description, "Posts with most replies");
+
+        $post_tab_datasets = $post_tab->getDatasets();
+        $this->assertEqual(count($post_tab_datasets), 1);
+        $post_tab_dataset = $post_tab_datasets[0];
+        $this->assertEqual($post_tab_dataset->name, "most_replied_to_posts");
+        $this->assertEqual($post_tab_dataset->dao_name, 'PostDAO');
+        $this->assertEqual($post_tab_dataset->dao_method_name, "getMostRepliedToPosts");
+
+        $post_tab = $menus['posts-mostlikes'];
+        $this->assertEqual($post_tab->name, "Most liked");
+        $this->assertEqual($post_tab->description, "Posts with most likes");
+
+        $post_tab_datasets = $post_tab->getDatasets();
+        $this->assertEqual(count($post_tab_datasets), 1);
+        $post_tab_dataset = $post_tab_datasets[0];
+        $this->assertEqual($post_tab_dataset->name, "most_replied_to_posts");
+        $this->assertEqual($post_tab_dataset->dao_name, 'PostDAO');
+        $this->assertEqual($post_tab_dataset->dao_method_name, "getMostFavedPosts");
+
+        $post_tab = $menus['posts-questions'];
+        $this->assertEqual($post_tab->name, "Inquiries");
+        $this->assertEqual($post_tab->description, "Inquiries, or posts with a question mark in them");
+
+        $post_tab_datasets = $post_tab->getDatasets();
+        $this->assertEqual(count($post_tab_datasets), 1);
+        $post_tab_dataset = $post_tab_datasets[0];
+        $this->assertEqual($post_tab_dataset->name, "all_facebook_posts");
+        $this->assertEqual($post_tab_dataset->dao_name, 'PostDAO');
+        $this->assertEqual($post_tab_dataset->dao_method_name, "getAllQuestionPosts");
+
+        $post_tab_datasets = $post_tab->getDatasets();
+        $this->assertEqual(count($post_tab_datasets), 1);
+
         $logger->close();
     }
 
     public function testDeactivate() {
         //all facebook and facebook page accounts should be set to inactive on plugin deactivation
-        $webapp = Webapp::getInstance();
+        $webapp_plugin_registrar = PluginRegistrarWebapp::getInstance();
         $logger = Logger::getInstance();
         $pd = DAOFactory::getDAO('PostDAO');
         $instance = new Instance();
@@ -100,4 +146,77 @@ class TestOfFacebookPlugin extends ThinkUpUnitTestCase {
         $logger->close();
     }
 
+    public function testCrawlWithAuthError() {
+        //build active instance owned by a owner
+        $instance_with_autherror = array('id'=>5, 'network_username'=>'Liz Lemon', 'network_user_id'=>'123456',
+        'network_viewer_id'=>'123456', 'last_post_id'=>'0', 'last_page_fetched_replies'=>0,
+        'last_page_fetched_tweets'=>'0', 'total_posts_in_system'=>'0', 'total_replies_in_system'=>'0',
+        'total_follows_in_system'=>'0', 'is_archive_loaded_replies'=>'0',
+        'is_archive_loaded_follows'=>'0', 'crawler_last_run'=>'', 'earliest_reply_in_system'=>'',
+        'avg_replies_per_day'=>'2', 'is_public'=>'0', 'is_active'=>'1', 'network'=>'facebook',
+        'last_favorite_id' => '0', 'owner_favs_in_system' => '0', 'total_posts_by_owner'=>0,
+        'posts_per_day'=>1, 'posts_per_week'=>1, 'percentage_replies'=>50, 'percentage_links'=>50,
+        'earliest_post_in_system'=>'2009-01-01 13:48:05', 'favorites_profile' => '0'
+        );
+
+        $instance_builder_1 = FixtureBuilder::build('instances', $instance_with_autherror);
+
+        $builders = array();
+        $builders[] = FixtureBuilder::build('owners', array('id'=>1, 'full_name'=>'ThinkUp J. User',
+        'email'=>'me@example.com', 'is_activated'=>1) );
+        $builders[] = FixtureBuilder::build('owner_instances', array('owner_id'=>1, 'instance_id'=>5,
+        'auth_error'=>''));
+
+        //assert invalid_oauth_email_sent_timestamp option is not set
+        $option_dao = DAOFactory::getDAO('OptionDAO');
+        $plugin_dao = DAOFactory::getDAO('PluginDAO');
+        $plugin_id = $plugin_dao->getPluginId('facebook');
+        $last_email_timestamp = $option_dao->getOptionByName(OptionDAO::PLUGIN_OPTIONS.'-'.$plugin_id,
+        'invalid_oauth_email_sent_timestamp');
+        $this->assertNull($last_email_timestamp);
+
+        //log in as that owner
+        $this->simulateLogin('me@example.com');
+
+        $_SERVER['HTTP_HOST'] = "mytestthinkup";
+
+        //run the crawl
+        $fb_plugin = new FacebookPlugin();
+        $fb_plugin->crawl();
+
+        //assert that APIOAuthException was caught and recorded in owner_instances table
+        $owner_instance_dao = new OwnerInstanceMySQLDAO();
+        $owner_instance = $owner_instance_dao->get(1, 5);
+        $this->assertEqual($owner_instance->auth_error, 'Error validating access token: Session has expired at unix '.
+        'time SOME_TIME. The current unix time is SOME_TIME.');
+
+        //assert that the email notification was sent to the user
+        $expected_reg_email_pattern = '/to: me@example.com
+subject: Please re-authorize ThinkUp to access Liz Lemon on Facebook
+message: Hi! Your ThinkUp installation is no longer connected to the Liz Lemon Facebook account./';
+
+        $actual_reg_email = Mailer::getLastMail();
+        $this->debug($actual_reg_email);
+        $this->assertPattern($expected_reg_email_pattern, $actual_reg_email);
+
+        //assert invalid_oauth_email_sent_timestamp option has been set
+        $last_email_timestamp = $option_dao->getOptionByName(OptionDAO::PLUGIN_OPTIONS.'-'.$plugin_id,
+        'invalid_oauth_email_sent_timestamp');
+        $this->assertNotNull($last_email_timestamp);
+
+        //Delete last mail file
+        $test_email_file = FileDataManager::getDataPath(Mailer::EMAIL);
+        unlink($test_email_file);
+        $actual_reg_email = Mailer::getLastMail();
+        //Assert it's been deleted
+        $this->assertEqual($actual_reg_email, '');
+
+        //Crawl again
+        $fb_plugin->crawl();
+
+        //Assert email has not been resent
+        $actual_reg_email = Mailer::getLastMail();
+        $this->debug($actual_reg_email);
+        $this->assertEqual($actual_reg_email, '');
+    }
 }

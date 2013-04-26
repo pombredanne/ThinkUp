@@ -5,27 +5,32 @@
         <h2 class="clearfix step_title">Repairing</h2>
         {include file="_usermessage.tpl"}
         {if $posted}
+
           {if $succeed}
           <div style="margin-bottom: 20px;">
-            <p class="success"><strong>Repairs complete</strong>. Please remove <code>$THINKUP_CFG['repair'] = true;</code>
-              from config.inc.php to prevent this page from being used by unauthorized users.
-              {if $username && password}
-                Your newly created admin user: <strong>{$username}</strong>, password:
-                <strong>{$password}</strong>
-              {/if}
-            </p>
+          
+           <div class="alert helpful" style="margin: 20px 0px; padding: 0.5em 0.7em;">
+                 <p>
+                   <span class="ui-icon ui-icon-check" style="float: left; margin:.3em 0.3em 0 0;"></span>
+                    <strong>Success!</strong>. ThinkUp's table repairs are complete. Please remove <code>$THINKUP_CFG['repair'] = true;</code>
+                      from config.inc.php to prevent this page from being used by unauthorized users.
+                    </p>
+                  </div>
+                <div style="float:right;padding:25px;"><a href="{$site_root_path}" class="linkbutton emphasized">Start Using ThinkUp</a></div>
+                  <div class="clearfix">
+                    {foreach from=$messages_db item=msg}
+                      {$msg}
+                    {/foreach}
+                    {foreach from=$messages_admin item=msg}
+                      {$msg}
+                    {/foreach}
+             </div>
+
           </div>
-          <div class="clearfix">
-            {foreach from=$messages_db item=msg}
-              {$msg}
-            {/foreach}
-            {foreach from=$messages_admin item=msg}
-              {$msg}
-            {/foreach}
-          </div>
+
           {else}
           <div class="clearfix error_message">
-            <strong>Ups!</strong> Something goes wrong, read the hints below!
+            <strong>Oops!</strong> Something went wrong.
           </div>
           <div class="clearfix">
             {foreach from=$messages_db item=msg}
@@ -44,7 +49,7 @@
           
           <div class="clearfix append_20">
             <div class="grid_10 prefix_7 left">
-              <input type="submit" name="repair" class="tt-button ui-state-default ui-priority-secondary ui-corner-all" value="Repair &raquo">
+              <input type="submit" name="repair" class="linkbutton ui-state-default ui-priority-secondary ui-corner-all" value="Repair &raquo">
             </div>
           </div>
         </form>

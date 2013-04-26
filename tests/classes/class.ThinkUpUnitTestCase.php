@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/classes/class.ThinkUpUnitTestCase.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -24,7 +24,7 @@
  *
  * Adds database support to the basic unit test case, for tests that need ThinkUp's database structure.
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
@@ -38,6 +38,10 @@ class ThinkUpUnitTestCase extends ThinkUpBasicUnitTestCase {
      */
     var $test_database_name;
     /**
+     * @var str
+     */
+    var $table_prefix;
+    /**
      * Create a clean copy of the ThinkUp database structure
      */
     public function setUp() {
@@ -46,16 +50,21 @@ class ThinkUpUnitTestCase extends ThinkUpBasicUnitTestCase {
         require THINKUP_ROOT_PATH .'tests/config.tests.inc.php';
         $this->test_database_name = $TEST_DATABASE;
 
-        //Override default CFG values
-        $THINKUP_CFG['db_name'] = $this->test_database_name;
         $config = Config::getInstance();
-        $config->setValue('db_name', $this->test_database_name);
+
+        if (!self::ramDiskTestMode() ) {
+            //Override default CFG values
+            $THINKUP_CFG['db_name'] = $this->test_database_name;
+            $config->setValue('db_name', $this->test_database_name);
+        } else {
+            $this->test_database_name = $THINKUP_CFG['db_name'];
+        }
 
         $this->testdb_helper = new ThinkUpTestDatabaseHelper();
         $this->testdb_helper->drop($this->test_database_name);
-        $this->testdb_helper->create($THINKUP_CFG['source_root_path']."webapp/install/sql/build-db_mysql.sql");
+        $this->table_prefix = $config->getValue('table_prefix');
+        $this->testdb_helper->create($THINKUP_CFG['source_root_path']."/webapp/install/sql/build-db_mysql.sql");
     }
-
     /**
      * Drop the database and kill the connection
      */
@@ -65,7 +74,6 @@ class ThinkUpUnitTestCase extends ThinkUpBasicUnitTestCase {
         }
         parent::tearDown();
     }
-
     /**
      * Returns an xml/xhtml document element by id
      * @param $doc an xml/xhtml document pobject
@@ -75,5 +83,28 @@ class ThinkUpUnitTestCase extends ThinkUpBasicUnitTestCase {
     public function getElementById($doc, $id) {
         $xpath = new DOMXPath($doc);
         return $xpath->query("//*[@id='$id']")->item(0);
+    }
+    /**
+     * Check if we in RAM disk test mode
+     * @return bool
+     */
+    public static function ramDiskTestMode() {
+        if (getenv("RD_MODE")=="1") {
+            return true;
+        }
+        return false;
+    }
+    /**
+     * Check if the MySQL server can set its timezone
+     * @return bool
+     */
+    protected function isTimeZoneSupported() {
+        $testdao = DAOFactory::getDAO('TestDAO');
+        try {
+            TestMySQLDAO::$PDO->exec("SET time_zone = 'UTC'");
+            return true;
+        } catch (PDOException $e) {
+            return false;
+        }
     }
 }

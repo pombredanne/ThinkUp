@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/classes/class.ThinkUpTestDatabaseHelper.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -26,7 +26,7 @@
  * Constructs and destructs the ThinkUp data structure for testing purposes.
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
@@ -36,15 +36,20 @@ class ThinkUpTestDatabaseHelper extends PDODAO {
      * Create ThinkUp tables
      */
     public function create($script_path) {
+        $error_reporting = error_reporting(); // save old reporting setting
         error_reporting(22527); //Don't show E_DEPRECATED PHP messages, split() is deprecated
         //Create all the tables based on the build script
         $create_db_script = file_get_contents($script_path);
         $create_statements = split(";", $create_db_script);
         foreach ($create_statements as $q) {
             if (trim($q) != '') {
+                if (self::$prefix != 'tu_') {
+                    $q = str_replace('tu_', self::$prefix, $q);
+                }
                 self::execute($q);
             }
         }
+        error_reporting( $error_reporting ); // reset error reporting
     }
 
     /**
@@ -110,7 +115,7 @@ class ThinkUpTestDatabaseHelper extends PDODAO {
         }
         $db_type = $config->getValue('db_type');
 
-        if(!$db_type) {
+        if (!$db_type) {
             $db_type = 'mysql';
         }
         $db_socket = $config->getValue('db_socket');

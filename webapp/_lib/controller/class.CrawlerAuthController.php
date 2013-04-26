@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/controller/class.CrawlerAuthController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -25,7 +25,7 @@
  *
  * Runs crawler from the command line given valid command line credentials.
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  */
 class CrawlerAuthController extends ThinkUpController {
@@ -57,6 +57,7 @@ class CrawlerAuthController extends ThinkUpController {
         $authorized = false;
 
         if (isset($this->argc) && $this->argc > 1) { // check for CLI credentials
+            $this->content_type = 'text/plain';
             $session = new Session();
             $username = $this->argv[1];
             if ($this->argc > 2) {
@@ -67,8 +68,7 @@ class CrawlerAuthController extends ThinkUpController {
 
             $owner_dao = DAOFactory::getDAO('OwnerDAO');
             $owner = $owner_dao->getByEmail($username);
-            $passcheck = $owner_dao->getPass($username);
-            if ($session->pwdCheck($pw, $passcheck)) {
+            if ( $owner_dao->isOwnerAuthorized($username, $pw)) {
                 $authorized = true;
                 Session::completeLogin($owner);
             } else {
@@ -83,8 +83,8 @@ class CrawlerAuthController extends ThinkUpController {
         }
 
         if ($authorized) {
-            $crawler = Crawler::getInstance();
-            $crawler->crawl();
+            $crawler_plugin_registrar = PluginRegistrarCrawler::getInstance();
+            $crawler_plugin_registrar->runRegisteredPluginsCrawl();
         }
 
         return $output;

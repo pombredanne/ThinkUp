@@ -1,104 +1,93 @@
-  <div class="prepend_20">
-    <h1>Application Settings</h1>
-  </div>
-  <div class="clearfix prepend_20">
-    <div class="grid_17 prefix_3 left">
-    {include file="_usermessage.tpl"}
-    </div>
-  </div>
 
-<div id="settings_error_message_error" 
-    class="ui-state-error ui-corner-all" style="margin: 20px 0px; padding: 0.5em 0.7em; display: none;">
-    <p>
-        <span class="ui-icon ui-icon-alert" style="float: left; margin:.3em 0.3em 0 0;"></span>
-        <span id="settings_error_message"></span>
-    </p>
+  <span class="pull-right">{insert name="help_link" id='application_settings'}</span>
+  <h3><i class="icon icon-cogs icon-muted"></i> Application Settings</h3>
+  {include file="_usermessage.tpl"}
+
+ <div class="alert alert-error" id="settings_error_message_error" style="display: none;">
+  <span class="ui-icon ui-icon-alert" style="float: left; margin:.3em 0.3em 0 0;"></span>
+  <span id="settings_error_message"></span>
 </div>
 
-<p class="success" id="settings_success" style="display: none;">
-    Settings Saved!
-</p>
+
+ <div class="alert alert-success"  id="settings_success" style="display: none;">
+  <span class="ui-icon ui-icon-check" style="float: left; margin:.3em 0.3em 0 0;"></span>
+  Settings saved!
+ </div>
 
 <form id="app-settings-form" name="app_settings" method="post" action="{$site_root_path}session/app_settings.php"
   onsubmit="return false">
-    <div class="clearfix" style="width: 640px;">
 
-      <div style="clear:both;"></div>
-      <div style="float: left;">
-        <label for="is_registration_open">
-          Open registration to new ThinkUp users:
-          <br />
-        </label>
-      </div>
-      <div style="float: left;">
-        <input type="checkbox" name="is_registration_open" id="is_registration_open" value="true">
-      </div>
-      <div style="clear:both;"></div>
-      <div style="font-size: 10px; margin: 0px 0px 10px 0px;">
-        Set whether or not your site's registration page is available and accepts new user registrations.
-      </div>
+<legend>Test Stuff Out</legend>
 
-      <div style="float: left;">
-        <label for="recaptcha_enable">
-          Enable reCAPTCHA:
-        </label>
-      </div>
-      <div style="float: left;">
-        <input type="checkbox" name="recaptcha_enable" id="recaptcha_enable" value="true">
-      </div>
-      <div style="clear:both;"></div>
-      <div style="font-size: 10px; margin: 0px 0px 10px 0px;">
-        Select to enable reCAPTCHA, and <a href="https://www.google.com/recaptcha">get your reCAPTCHA keys here</a>. {insert name="help_link" id="application_settings"}
-      </div>
+      <label class="checkbox">
+        <input type="checkbox" name="is_subscribed_to_beta" id="is_subscribed_to_beta" value="true"> Enable beta upgrades
+      </label>
+      <span class="help-block">Test bleeding edge, beta upgrades. May require command line server access. Proceed at your own risk.</span>
 
-      <div id="recaptcha_enable_deps" style="display: none; width: 450px; margin: 10px 0px 60px 20px;">
-          <div style="float: left;">
-            <label for="recaptcha_public_key">
-              reCAPTCHA Public Key:
-            </label>
-          </div>
-          <div style="float: right;">
-            <input type="text" name="recaptcha_public_key" id="recaptcha_public_key" value="">
-          </div>
+      <label class="checkbox">
+        <input type="checkbox" name="is_log_verbose" id="is_log_verbose" value="true"> Enable developer log
+      </label>
+      <span class="help-block">See the verbose, unformatted developer log on the Capture Data screen.</span>
 
-          <div style="clear:both;"></div>
-          <div style="float: left;">
-            <label for="recaptcha_private_key">
-              reCAPTCHA Private Key:
-            </label>
-          </div>
-          <div style="float: right;">
-            <input type="text" name="recaptcha_private_key" id="recaptcha_private_key" value="">
-          </div>
-       </div>
+<legend>Let People In</legend>
 
-      <div style="float: left;">
-        <label for="is_api_disabled">
-          Disable the JSON API:
-          <br />
-        </label>
-      </div>
-      <div style="float: left;">
-        <input type="checkbox" name="is_api_disabled" id="is_api_disabled" value="true">
-      </div>
-      <div style="clear:both;"></div>
-      <div style="font-size: 10px; margin: 0px 0px 10px 0px;">
-        Set whether or not your site's data is available via ThinkUp's JSON API. {insert name="help_link" id="api"}
+      <label class="checkbox">
+        <input type="checkbox" name="is_registration_open" id="is_registration_open" value="true"> Open registration to new ThinkUp users
+      </label>
+      <span class="help-block">Set whether or not your site's registration page is available and accepts new user registrations.</span>
+
+      <label class="checkbox">
+        <input type="checkbox" name="recaptcha_enable" id="recaptcha_enable" value="true"> Enable reCAPTCHA
+      </label>
+      <span class="help-block">Add reCAPTCHA to ThinkUp's registration form. <a href="https://www.google.com/recaptcha">Get your reCAPTCHA keys here</a>.</span>
+
+      <label for="default_instance">
+        Default service user:
+
+      <select name="default_instance" id="default_instance">
+        <option value="0">Last updated</option>
+        {foreach from=$public_instances item=pi}
+          <option value="{$pi->id}">{$pi->network_username} - {$pi->network|capitalize}</option>
+        {/foreach}
+      </select>
+      </label>
+      
+      <span class="help-block">Set the service user to display by default. {insert name="help_link" id="default_service_user"}</span>
+
+      <div id="recaptcha_enable_deps" style="display: none; width: 470px; margin: 0 0 20px 0;">
+        <label for="recaptcha_public_key">reCAPTCHA Public Key</label>
+        <input type="text" name="recaptcha_public_key" id="recaptcha_public_key" value="">
+        <label for="recaptcha_private_key">reCAPTCHA Private Key</label>
+        <input type="text" name="recaptcha_private_key" id="recaptcha_private_key" value="">
       </div>
 
-   </div>
+<legend>Don't Share Data</legend>
+
+      <label class="checkbox">
+        <input type="checkbox" name="is_api_disabled" id="is_api_disabled" value="true"> Disable the JSON API
+      </label>
+      <span class="help-block">Set whether or not your site's data is available via ThinkUp's JSON API. <a href="http://thinkup.com/docs/userguide/api/posts/index.html">Learn more...</a></span>
+
+      <label class="checkbox">
+        <input type="checkbox" name="is_embed_disabled" id="is_embed_disabled" value="true"> Disable thread embeds
+      </label>
+      <span class="help-block">Set whether or not a user can embed a ThinkUp thread onto another web site.</span>
+
+      <label class="checkbox">
+        <input type="checkbox" name="is_opted_out_usage_stats" id="is_opted_out_usage_stats" value="true"> Disable usage reporting
+      </label>
+      <span class="help-block">Usage reporting helps us improve ThinkUp. <a href="http://thinkup.com/docs/userguide/settings/application.html#disable-usage-reporting">Learn more...</a></span>
 
     <div style="text-align: center" id="save_setting_image">
-        <img  id="save_setting_image" src="{$site_root_path}assets/img/loading.gif" width="31" height="31"  
+        <img  id="save_setting_image" src="{$site_root_path}assets/img/loading.gif" width="50" height="50"  
         style="display: none; margin: 10px;"/>
     </div>
         
     <div class="clearfix">
       <div class="grid_10 prefix_9 left">
         <input type="submit" id="app-settings-save" name="Submit" 
-        class="tt-button ui-state-default ui-priority-secondary ui-corner-all" value="Save Settings">
+        class="btn btn-primary" value="Save Settings">
       </div>
     </div>
 
 </form>
-

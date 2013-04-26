@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/classes/class.ThinkUpBasicWebTestCase.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,7 +23,7 @@
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 class ThinkUpBasicWebTestCase extends WebTestCase {
     /**
@@ -45,10 +45,16 @@ class ThinkUpBasicWebTestCase extends WebTestCase {
         putenv("MODE=TESTS");
         $this->get($this->url.'/install/setmode.php?m=tests');
 
-        self::isWebTestEnvironmentReady();
+        ThinkUpBasicUnitTestCase::isTestEnvironmentReady();
 
         require THINKUP_ROOT_PATH.'tests/config.tests.inc.php';
         $this->test_database_name = $TEST_DATABASE;
+        if (ThinkUpUnitTestCase::ramDiskTestMode()) {
+            putenv("RD_MODE=1");
+            require THINKUP_WEBAPP_PATH.'config.inc.php';
+            $this->test_database_name = $THINKUP_CFG['db_name'];
+            $this->get($this->url.'/install/setmode.php?rd=1');
+        }
     }
 
     public function tearDown() {
@@ -57,17 +63,9 @@ class ThinkUpBasicWebTestCase extends WebTestCase {
     }
 
     public function debug($message) {
-        if($this->DEBUG) {
+        if ($this->DEBUG) {
             $bt = debug_backtrace();
             print get_class($this) . ": line " . $bt[0]['line'] . " - " . $message . "\n";
         }
-    }
-
-    /**
-     * Preemptively halt test run if integration testing environment requirement isn't met.
-     * Prevents unnecessary/inexplicable failures and data loss.
-     */
-    public static function isWebTestEnvironmentReady() {
-        ThinkUpBasicUnitTestCase::isTestEnvironmentReady();
     }
 }

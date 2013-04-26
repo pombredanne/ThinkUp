@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/plugins/hellothinkup/controller/class.HelloThinkUpPluginConfigurationController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Mark Wilkie
+ * Copyright (c) 2009-2013 Gina Trapani, Mark Wilkie
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -24,7 +24,7 @@
  * HelloThinkUp Plugin Configuration Controller
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Mark Wilkie
+ * @copyright 2009-2013 Gina Trapani, Mark Wilkie
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @author Mark Wilkie <mwilkie[at]gmail[dot]com>
  */
@@ -32,14 +32,15 @@
 class HelloThinkUpPluginConfigurationController extends PluginConfigurationController {
     public function authControl() {
         $config = Config::getInstance();
-        Utils::defineConstants();
+        Loader::definePathConstants();
         $this->setViewTemplate( THINKUP_WEBAPP_PATH.'plugins/hellothinkup/view/hellothinkup.account.index.tpl');
-        $this->addToView('message',
-            'Hello, world! This is the example plugin configuration page for  '.$this->owner->email .'.');
+        $this->addToView('message', 'Hello ThinkUp world! This is an example plugin configuration page for  '.
+        $this->owner->email .'.');
+        $this->view_mgr->addHelp('hellothinkup', 'contribute/developers/plugins/buildplugin');
 
         /** set option fields **/
         // name text field
-        $name_field = array('name' => 'testname', 'label' => 'Your Name'); // set an element name and label
+        $name_field = array('name' => 'testname', 'label' => 'Your Name', 'size' => 40); // set element name and label
         $name_field['default_value'] = 'ThinkUp User'; // set default value
         $this->addPluginOption(self::FORM_TEXT_ELEMENT, $name_field); // add element
         // set testname header
@@ -87,7 +88,9 @@ class HelloThinkUpPluginConfigurationController extends PluginConfigurationContr
         $adv2 = array('name' => 'AdvancedInfo2', 'label' => '2nd advanced field', 'advanced' => true);
         $this->addPluginOption(self::FORM_TEXT_ELEMENT, $adv2);
 
-        return $this->generateView();
+        $plugin = new HelloThinkUpPlugin();
+        $this->addToView('is_configured', $plugin->isConfigured());
 
+        return $this->generateView();
     }
 }

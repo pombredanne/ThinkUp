@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/model/class.Instance.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -27,7 +27,7 @@
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 class Instance {
     /**
@@ -95,6 +95,10 @@ class Instance {
      */
     var $earliest_reply_in_system;
     /**
+     * @var bool Whether or not all the instance's posts have been backfilled.
+     */
+    var $is_archive_loaded_posts = false;
+    /**
      * @var bool Whether or not all the instance's replies have been backfilled.
      */
     var $is_archive_loaded_replies = false;
@@ -140,6 +144,7 @@ class Instance {
             $this->percentage_links = $row['percentage_links'];
             $this->earliest_post_in_system = $row['earliest_post_in_system'];
             $this->earliest_reply_in_system = $row['earliest_reply_in_system'];
+            $this->is_archive_loaded_posts = PDODAO::convertDBToBool($row['is_archive_loaded_posts']);
             $this->is_archive_loaded_replies = PDODAO::convertDBToBool($row['is_archive_loaded_replies']);
             $this->is_archive_loaded_follows = PDODAO::convertDBToBool($row['is_archive_loaded_follows']);
             $this->is_public = PDODAO::convertDBToBool($row['is_public']);
