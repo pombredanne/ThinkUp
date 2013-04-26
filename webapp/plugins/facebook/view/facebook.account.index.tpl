@@ -1,118 +1,184 @@
-<div class="append_20">
-
-    {if $owner->is_admin}
-	<div class="ui-state-highlight ui-corner-all" style="margin: 20px 0px; padding: .5em 0.7em;"> 
-		<p><span class="ui-icon ui-icon-info" style="float: left; margin:.3em 0.3em 0 0;"></span>
-		As an administrator you can see all accounts in the system.</p>
-	</div>
-    {/if}
+{include file="_usermessage.tpl"}
     
-    {include file="_usermessage.tpl"}
+<div class="plugin-info">
 
-    {if count($owner_instances) > 0 }
-    <h2 class="subhead">Facebook User Accounts</h2>
-    {foreach from=$owner_instances key=iid item=i name=foo}
-    <div class="clearfix">
-        <div class="grid_4 right" style="padding-top:.5em;">
-            <a href="{$site_root_path}index.php?u={$i->network_username|urlencode}&n={$i->network|urlencode}">{$i->network_username}</a> 
+    <span class="pull-right">{insert name="help_link" id='facebook'}</span>
+    <h2>
+        <i class="icon-facebook icon-muted"></i> Facebook 
+    </h2>
+
+</div>
+
+{if $fbconnect_link}
+{include file="_usermessage.tpl" field="authorization"}
+<a href="{$fbconnect_link}" class="btn btn-success add-account"><i class="icon-plus icon-white"></i> Add a Facebook User</a>
+{/if}
+
+{if count($instances) > 0 }{include file="_usermessage.tpl" field="user_add"}{/if}
+
+{if count($instances) > 0 }
+<div>
+    <h2>Users</h2>
+
+    {foreach from=$instances key=iid item=i name=foo}
+    <div class="row-fluid">
+        <div class="span3">
+            {if $i->auth_error}<span class="ui-icon ui-icon-alert" style="float: left; margin:0.25em 0 0 0;" id="facebook-auth-error"></span>{/if}
+            <a href="{$site_root_path}?u={$i->network_username|urlencode}&n={$i->network|urlencode}">{$i->network_username}</a>
         </div>
-        <div class="grid_4 right">
-            <span id="div{$i->id}"><input type="submit" name="submit" id="{$i->id}" class="tt-button ui-state-default ui-priority-secondary ui-corner-all {if $i->is_public}btnPriv{else}btnPub{/if}" value="{if $i->is_public}set private{else}set public{/if}" /></span>
+        <div class="span3">
+            <span id="div{$i->id}"><input type="submit" name="submit" id="{$i->id}" class="btn {if $i->is_public}btnPriv{else}btnPub{/if}" value="Set {if $i->is_public}private{else}public{/if}" /></span>
         </div>
-        <div class="grid_4 right">
-            <span id="divactivate{$i->id}"><input type="submit" name="submit" id="{$i->id}" class="tt-button ui-state-default ui-priority-secondary ui-corner-all {if $i->is_active}btnPause{else}btnPlay{/if}" value="{if $i->is_active}pause crawling{else}start crawling{/if}" /></span>
+        {if $user_is_admin}
+        <div class="span3">
+            <span id="divactivate{$i->id}"><input type="submit" name="submit" id="{$i->id}" class="btn {if $i->is_active}btnPause{else}btnPlay{/if}" value="{if $i->is_active}Pause{else}Start{/if} crawling" /></span>
         </div>
-        <div class="grid_8 right">
+        {/if}
+        <div class="span3">
             <span id="delete{$i->id}"><form method="post" action="{$site_root_path}account/?p=facebook"><input type="hidden" name="instance_id" value="{$i->id}">
-            <input onClick="return confirm('Do you really want to delete this Facebook account?');"  type="submit" name="action" class="tt-button ui-state-default ui-priority-secondary ui-corner-all" value="delete" /></form></span>
+            {insert name="csrf_token"}<!-- delete account csrf token -->
+            <input onClick="return confirm('Do you really want to delete this Facebook account from ThinkUp?');"  type="submit" name="action" class="btn btn-danger" value="Delete" /></form></span>
         </div>
     </div>
     {/foreach}
-    <br />
+</div>
 
-    <h2 class="subhead">Facebook Pages</h2>
-    {if $owner->is_admin}
-    <div class="ui-state-highlight ui-corner-all" style="margin: 20px 0px; padding: .5em 0.7em;"> 
-        <p><span class="ui-icon ui-icon-info" style="float: left; margin:.3em 0.3em 0 0;"></span>
-        As an administrator you can see all accounts in the system.</p>
-    </div>
-    {/if}
-    {if count($owner_instance_pages) > 0 }
+    {if isset($owner_instance_pages) && count($owner_instance_pages) > 0 }{include file="_usermessage.tpl" field="page_add"}{/if}
+
+
+    {if isset($owner_instance_pages) && count($owner_instance_pages) > 0 }
+<div>
+    <h2>Pages</h2>
+    <div class="article">
     {foreach from=$owner_instance_pages key=iid item=i name=foo}
-    <div class="clearfix">
-        <div class="grid_4 right" style="padding-top:.5em;">
-            <a href="{$site_root_path}index.php?u={$i->network_username|urlencode}&n={$i->network|urlencode}">{$i->network_username}</a> 
+    <div class="row-fluid">
+        <div class="span3">
+            <a href="{$site_root_path}?u={$i->network_username|urlencode}&n={$i->network|urlencode}">{$i->network_username}</a> 
         </div>
-        <div class="grid_4 right">
-            <span id="div{$i->id}"><input type="submit" name="submit" class="tt-button ui-state-default ui-priority-secondary ui-corner-all {if $i->is_public}btnPriv{else}btnPub{/if}" id="{$i->id}" value="{if $i->is_public}set private{else}set public{/if}" /></span>
+        <div class="span3">
+            <span id="div{$i->id}"><input type="submit" name="submit" class="btn {if $i->is_public}btnPriv{else}btnPub{/if}" id="{$i->id}" value="Set {if $i->is_public}private{else}public{/if}" /></span>
         </div>
-        <div class="grid_4 right">
-            <span id="divactivate{$i->id}"><input type="submit" name="submit" class="tt-button ui-state-default ui-priority-secondary ui-corner-all {if $i->is_active}btnPause{else}btnPlay{/if}" id="{$i->id}" value="{if $i->is_active}pause crawling{else}start crawling{/if}" /></span>
+        {if $user_is_admin}
+        <div class="span3">
+            <span id="divactivate{$i->id}"><input type="submit" name="submit" class="btn {if $i->is_active}btnPause{else}btnPlay{/if}" id="{$i->id}" value="{if $i->is_active}Pause{else}Start{/if} crawling" /></span>
         </div>
-        <div class="grid_8 right">
+        {/if}
+        <div class="span3">
             <span id="delete{$i->id}"><form method="post" action="{$site_root_path}account/?p=facebook"><input type="hidden" name="instance_id" value="{$i->id}">
-            <input onClick="return confirm('Do you really want to delete this page?');"  type="submit" name="action" class="tt-button ui-state-default ui-priority-secondary ui-corner-all" value="delete" /></form></span>
+            {insert name="csrf_token"}<!-- delete page csrf token -->
+            <input onClick="return confirm('Do you really want to delete this page?');"  type="submit" name="action" class="btn btn-danger" value="Delete" /></form></span>
         </div>
-
-    </div>{/foreach}
-    <br />
+    </div>
+    {/foreach}
+    </div>
+</div>
     {/if}
 
-
-{foreach from=$owner_instances key=iid item=i name=foo}
+<div>
+<h2>Add a Facebook Page</h2>
+{foreach from=$instances key=iid item=i name=foo}
   {assign var='facebook_user_id' value=$i->network_user_id}
-  {if $user_pages.$facebook_user_id}
-    <div class="clearfix">
-        <div class="grid_4 right" style="padding-top:.5em;">
-            {$i->network_username}&nbsp;likes:
-        </div>
-        <form name="addpage" action="index.php?p=facebook">
-        <div class="grid_8">
-            {if $user_pages.$facebook_user_id}
+  {if $user_pages.$facebook_user_id or $user_admin_pages.$facebook_user_id}
+      <div class="row-fluid">
+        <div class="span6">
+          <form name="addpage" action="index.php?p=facebook">
             <input type="hidden" name="instance_id" value="{$i->id}">
             <input type="hidden" name="p" value="facebook">
             <input type="hidden" name ="viewer_id" value="{$i->network_user_id}" />
             <input type="hidden" name ="owner_id" value="{$owner->id}" />
             <select name="facebook_page_id">
-                {foreach from=$user_pages.$facebook_user_id key=page_id item=page name=p}
-                    <option value="{$page->id}">{if strlen($page->name)>27}{$page->name|substr:0:27}...{else}{$page->name}{/if}</option> <br />
-                {/foreach}
+                {if $user_admin_pages.$facebook_user_id}
+                    <optgroup label="Pages {$i->network_username} Manages">
+                        {foreach from=$user_admin_pages.$facebook_user_id key=page_id item=page name=p}
+                            <option value="{$page->id}">{if strlen($page->name)>27}{$page->name|substr:0:27}...{else}{$page->name}{/if}</option> <br />
+                        {/foreach}
+                    </optgroup>
+                {/if}
+                {if $user_pages.$facebook_user_id}
+                    <optgroup label="Pages {$i->network_username} Likes">
+                    {foreach from=$user_pages.$facebook_user_id key=page_id item=page name=p}
+                        <option value="{$page->id}">{if strlen($page->name)>27}{$page->name|substr:0:27}...{else}{$page->name}{/if}</option> <br />
+                    {/foreach}
+                    </optgroup>
+                {/if}
              </select>
-             {/if}
+           <span id="divaddpage{$i->network_username}"><input type="submit" name="action" class="btn addPage"  id="{$i->network_username}" value="add page" /></span>
         </div>
-        <div class="grid_7">
-             <span id="divaddpage{$i->network_username}"><input type="submit" name="action" class="tt-button ui-state-default ui-priority-secondary ui-corner-all
-addPage"  id="{$i->network_username}" value="add page" /></span>
-        </div>
-        </form>
+     </div>
+    {else}
+    <div class="article">
+    To add a Facebook page to ThinkUp, create a new page on Facebook.com or "like" an existing one, and refresh this page.
     </div>
-{/if}
+    {/if}
 {/foreach}
-{/if}
-</div> 
-<div id="add-account-div" style="display: none;">
-    {if $fbconnect_link}<h2 class="subhead">Add a Facebook User</h2>{$fbconnect_link}{/if}
-    <div>
-    </div>
+
 </div>
+
+{/if}
 
 <div id="contact-admin-div" style="display: none;">
 {include file="_plugin.admin-request.tpl"}
 </div>
 
-{if $options_markup}
-<div {if $user_is_admin}style="border: solid gray 1px;padding:10px;margin:20px"{/if}>
 {if $user_is_admin}
-<h2 class="subhead">Configure the Facebook Plugin</h2>
+{include file="_plugin.showhider.tpl"}
+{include file="_usermessage.tpl" field="setup"}
+
+<p style="padding:5px">To set up the Facebook plugin:</p>
 <ol style="margin-left:40px">
-<li><a href="http://developers.facebook.com/setup/">Create a ThinkUp Facebook application.</a></li>
-<li>Set the Web Site &gt; Site URL to <pre>http{if $smarty.server.HTTPS}s{/if}://{$smarty.server.SERVER_NAME}{if $smarty.server.SERVER_PORT != '80'}:{$smarty.server.SERVER_PORT}{/if}{$site_root_path}</pre></li>
-<li>Enter the Facebook-provided API Key, Application Secret and Application ID here.</li></ol>
+<li><a href="https://developers.facebook.com/apps" target="_blank" style="text-decoration: underline;">Go to the Facebook Developers Apps page</a> and click the "Create New App" button</li>
+<li>
+    Fill in the following settings.<br />
+    <strong>App Display Name:</strong> <span style="font-family:Courier;">{$logged_in_user} ThinkUp</span><br />
+    <strong>App Namespace:</strong> [leave blank]<br />
+    <strong>Web Hosting:</strong> [Do not check box]<br />
+    Click "Continue", enter in the security word, and click "Continue" again
+</li>
+<li>
+  Click "Website with Facebook Login", then next to <strong>Site URL</strong>, copy and paste this:<br>
+    <small>
+      <code style="font-family:Courier;" id="clippy_2988">{$thinkup_site_url}</code>
+    </small>
+    <object classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000"
+              width="100"
+              height="14"
+              class="clippy"
+              id="clippy" >
+      <param name="movie" value="{$site_root_path}assets/flash/clippy.swf"/>
+      <param name="allowScriptAccess" value="always" />
+      <param name="quality" value="high" />
+      <param name="scale" value="noscale" />
+      <param NAME="FlashVars" value="id=clippy_2988&amp;copied=copied!&amp;copyto=copy to clipboard">
+      <param name="bgcolor" value="#FFFFFF">
+      <param name="wmode" value="opaque">
+      <embed src="{$site_root_path}assets/flash/clippy.swf"
+             width="100"
+             height="14"
+             name="clippy"
+             quality="high"
+             allowScriptAccess="always"
+             type="application/x-shockwave-flash"
+             pluginspage="http://www.macromedia.com/go/getflashplayer"
+             FlashVars="id=clippy_2988&amp;copied=copied!&amp;copyto=copy to clipboard"
+             bgcolor="#FFFFFF"
+             wmode="opaque"
+      />
+    </object><br />
+    Click "Save Changes"
+</li>
+<li>Enter the Facebook-provided <strong>App ID</strong> and <strong>App Secret</strong> here.</li>
+</ol>
+
 {/if}
+
+
+{if $options_markup}
 <p>
 {$options_markup}
 </p>
-</div>
+{/if}
+
+{if $user_is_admin}</div>{/if}
 
 {literal}
 <script type="text/javascript">
@@ -125,5 +191,3 @@ if( required_values_set ) {
 }
 {/literal}
 </script>
-{/if}
-

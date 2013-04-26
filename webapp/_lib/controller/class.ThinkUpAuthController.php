@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/controller/class.ThinkUpAuthController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -25,7 +25,7 @@
  *
  * Parent controller for all logged-in user-only actions
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
@@ -35,11 +35,25 @@ abstract class ThinkUpAuthController extends ThinkUpController {
     }
 
     public function control() {
-        if ($this->isLoggedIn()) {
-            return $this->authControl();
+        $response = $this->preAuthControl();
+        if (!$response) {
+            if ($this->isLoggedIn()) {
+                return $this->authControl();
+            } else {
+                return $this->bounce();
+            }
         } else {
-            return $this->bounce();
+            return $response;
         }
+    }
+
+    /**
+     * A child class can override this method to define other auth mechanisms.
+     * If the return is not false it assumes the child class has validated the user and has called authControl()
+     * @return boolean PreAuthed
+     */
+    protected function preAuthControl() {
+        return false;
     }
 
     /**
@@ -47,13 +61,13 @@ abstract class ThinkUpAuthController extends ThinkUpController {
      * @TODO bounce back to original action once signed in
      */
     protected function bounce() {
-        if (get_class($this)=='DashboardController' || get_class($this)=='PostController') {
-            $controller = new DashboardController(true);
+        $config = Config::getInstance();
+
+        if (get_class($this)=='InsightStreamController' || get_class($this)=='PostController') {
+            $controller = new InsightStreamController(true);
             return $controller->go();
         } else {
-            $config = Config::getInstance();
-            throw new Exception('You must <a href="'.$config->getValue('site_root_path').
-            'session/login.php">log in</a> to do this.');
+            throw new ControllerAuthException('You must log in to access this controller: ' . get_class($this));
         }
     }
 }

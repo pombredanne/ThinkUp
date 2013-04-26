@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/model/class.MenuItem.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -24,7 +24,7 @@
  * Menu Item
  * Sidebar menu item, contains datasets to render in the view.
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
@@ -50,10 +50,9 @@ class MenuItem {
      */
     var $view_template;
     /**
-     *
-     * @var str Header that appears just before menu item in the sidebar
+     * @var str Parent view slug, for maintaining state when on an inner view
      */
-    var $header = null;
+    var $parent = null;
     /**
      * Constructor
      * @param str $name
@@ -61,11 +60,11 @@ class MenuItem {
      * @param str $view_template
      * @return MenuItem
      */
-    public function __construct($name, $description='', $view_template='inline.view.tpl', $header=null) {
+    public function __construct($name, $description='', $view_template='inline.view.tpl', $parent=null) {
         $this->name = $name;
         $this->description = $description;
         $this->view_template = $view_template;
-        $this->header = $header;
+        $this->parent = $parent;
     }
 
     /**

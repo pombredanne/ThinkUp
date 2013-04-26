@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfDAOFactory.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Mark Wilkie, Christoffer Viken
+ * Copyright (c) 2009-2013 Gina Trapani, Mark Wilkie, Christoffer Viken
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -24,15 +24,15 @@
  * Test of DAOFactory
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Mark Wilkie, Christoffer Viken
+ * @copyright 2009-2013 Gina Trapani, Mark Wilkie, Christoffer Viken
  * @author Mark Wilkie
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
-require_once THINKUP_ROOT_PATH.'webapp/plugins/twitter/model/class.TwitterInstanceMySQLDAO.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'plugins/twitter/model/class.TwitterInstanceMySQLDAO.php';
 
 class TestOfDAOFactory extends ThinkUpUnitTestCase {
 
@@ -43,14 +43,17 @@ class TestOfDAOFactory extends ThinkUpUnitTestCase {
 
     protected function buildData() {
         $builders = array();
-         
-        // test table for our test dao
+
+        // test table for our test DAO
         $test_table_sql = 'CREATE TABLE tu_test_table(' .
-            'id int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,' . 
+            'id int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,' .
             'test_name varchar(20),' .
             'test_id int(11),' .
             'unique key test_id_idx (test_id)' .
             ')';
+        if (ThinkUpTestDatabaseHelper::$prefix != 'tu_') {
+            $test_table_sql = str_replace('tu_', ThinkUpTestDatabaseHelper::$prefix, $test_table_sql);
+        }
         $this->testdb_helper->runSQL($test_table_sql);
 
         //some test data as well
@@ -68,12 +71,12 @@ class TestOfDAOFactory extends ThinkUpUnitTestCase {
     }
 
     /*
-     * test fetching the proper db_type
+     * Test fetching the proper db_type
      */
     public function testDAODBType() {
         Config::getInstance()->setValue('db_type', null);
         $type = DAOFactory::getDBType();
-        $this->assertEqual($type, 'mysql', 'should default to mysql');
+        $this->assertEqual($type, 'mysql', 'should default to MySQL');
 
         Config::getInstance()->setValue('db_type', 'some_sql_server');
         $type = DAOFactory::getDBType();
@@ -81,7 +84,7 @@ class TestOfDAOFactory extends ThinkUpUnitTestCase {
     }
 
     /*
-     * test init DAOs, bad params and all...
+     * Test init DAOs, bad params and all...
      */
     public function testGetTestDAO() {
         // no map for this DAO
@@ -89,31 +92,31 @@ class TestOfDAOFactory extends ThinkUpUnitTestCase {
             DAOFactory::getDAO('NoSuchDAO');
             $this->fail('should throw an exception');
         } catch(Exception $e) {
-            $this->assertPattern('/No DAO mapping defined for: NoSuchDAO/', $e->getMessage(), 'no dao mapping');
+            $this->assertPattern('/No DAO mapping defined for: NoSuchDAO/', $e->getMessage(), 'no DAO mapping');
         }
 
-        // invalid db type for this dao
+        // invalid db type for this DAO
         Config::getInstance()->setValue('db_type', 'nodb');
         try {
             DAOFactory::getDAO('TestDAO');
             $this->fail('should throw an exception');
         } catch(Exception $e) {
-            $this->assertPattern("/No db mapping defined for 'TestDAO'/", $e->getMessage(), 'no dao db_type mapping');
+            $this->assertPattern("/No db mapping defined for 'TestDAO'/", $e->getMessage(), 'no DAO db_type mapping');
         }
 
-        // valid mysql test dao
+        // valid MySQL test DAO
         Config::getInstance()->setValue('db_type', 'mysql');
         $test_dao = DAOFactory::getDAO('TestDAO');
-        $this->assertIsA($test_dao, 'TestMysqlDAO', 'we are a mysql dao');
+        $this->assertIsA($test_dao, 'TestMySQLDAO', 'we are a MySQL DAO');
         $data_obj = $test_dao->selectRecord(1);
         $this->assertNotNull($data_obj);
         $this->assertEqual($data_obj->test_name, 'name1');
         $this->assertEqual($data_obj->test_id, 1);
 
-        // valid fuax test dao
+        // valid faux test DAO
         Config::getInstance()->setValue('db_type', 'faux');
         $test_dao = DAOFactory::getDAO('TestDAO');
-        $this->assertIsA($test_dao, 'TestFauxDAO', 'we are a mysql dao');
+        $this->assertIsA($test_dao, 'TestFauxDAO', 'we are a MySQL DAO');
         $data_obj = $test_dao->selectRecord(1);
         $this->assertNotNull($data_obj);
         $this->assertEqual($data_obj->test_name, 'Mojo Jojo');
@@ -187,7 +190,7 @@ class TestOfDAOFactory extends ThinkUpUnitTestCase {
     public function testGetOwnerDAONoConfigFile(){
         $this->removeConfigFile();
         Config::destroyInstance();
-        $cfg_values = array("table_prefix"=>"tu_", "db_host"=>"localhost");
+        $cfg_values = array("table_prefix"=>ThinkUpTestDatabaseHelper::$prefix, "db_host"=>"localhost");
         $config = Config::getInstance($cfg_values);
         $dao = DAOFactory::getDAO('OwnerDAO', $cfg_values);
         $this->assertTrue(isset($dao));
@@ -202,6 +205,42 @@ class TestOfDAOFactory extends ThinkUpUnitTestCase {
         $dao = DAOFactory::getDAO('LinkDAO');
         $this->assertTrue(isset($dao));
         $this->assertIsA($dao, 'LinkMySQLDAO');
+    }
+
+    /**
+     * Test get HashtagDAO
+     */
+    public function testGetHashtagDAO(){
+        $dao = DAOFactory::getDAO('HashtagDAO');
+        $this->assertTrue(isset($dao));
+        $this->assertIsA($dao, 'HashtagMySQLDAO');
+    }
+
+    /**
+     * Test get MentionDAO
+     */
+    public function testGetMentionDAO(){
+        $dao = DAOFactory::getDAO('MentionDAO');
+        $this->assertTrue(isset($dao));
+        $this->assertIsA($dao, 'MentionMySQLDAO');
+    }
+
+    /**
+     * Test get PlaceDAO
+     */
+    public function testGetPlaceDAO(){
+        $dao = DAOFactory::getDAO('PlaceDAO');
+        $this->assertTrue(isset($dao));
+        $this->assertIsA($dao, 'PlaceMySQLDAO');
+    }
+
+    /**
+     * Test get StreamDataDAO
+     */
+    public function testGetStreamDataDAO(){
+        $dao = DAOFactory::getDAO('StreamDataDAO');
+        $this->assertTrue(isset($dao));
+        $this->assertIsA($dao, 'StreamDataMySQLDAO');
     }
 
     /**
@@ -274,6 +313,14 @@ class TestOfDAOFactory extends ThinkUpUnitTestCase {
         $this->assertIsA($dao, 'FavoritePostMySQLDAO');
     }
     /**
+     * Test get InviteDAO
+     */
+    public function testGetInviteDAO() {
+        $dao = DAOFactory::getDAO('InviteDAO');
+        $this->assertNotNull($dao);
+        $this->assertIsA($dao, 'InviteMySQLDAO');
+    }
+    /**
      * Test get TwitterInstanceDAO
      */
     public function testGetTwitterInstanceDAO() {
@@ -282,19 +329,92 @@ class TestOfDAOFactory extends ThinkUpUnitTestCase {
         $this->assertIsA($dao, 'TwitterInstanceMySQLDAO');
     }
     /**
+     * Test get PostExportDAO
+     */
+    public function testGetPostExportDAO() {
+        $dao = DAOFactory::getDAO('ExportDAO');
+        $this->assertNotNull($dao);
+        $this->assertIsA($dao, 'ExportMySQLDAO');
+    }
+
+    /**
+     * Test get StreamProcDAO
+     */
+    public function testGetStreamProcsDAO() {
+        $dao = DAOFactory::getDAO('StreamProcDAO');
+        $this->assertNotNull($dao);
+        $this->assertIsA($dao, 'StreamProcMySQLDAO');
+    }
+
+    public function testGetGroupDAO() {
+        $dao = DAOFactory::getDAO('GroupDAO');
+        $this->assertNotNull($dao);
+        $this->assertIsA($dao, 'GroupMySQLDAO');
+    }
+
+    public function testGetGroupMemberDAO() {
+        $dao = DAOFactory::getDAO('GroupMemberDAO');
+        $this->assertNotNull($dao);
+        $this->assertIsA($dao, 'GroupMemberMySQLDAO');
+    }
+
+    public function testGetGroupMembershipDAO() {
+        $dao = DAOFactory::getDAO('GroupMembershipCountDAO');
+        $this->assertNotNull($dao);
+        $this->assertIsA($dao, 'GroupMembershipCountMySQLDAO');
+    }
+
+    public function testGetTableStatsDAO() {
+        $dao = DAOFactory::getDAO('TableStatsDAO');
+        $this->assertNotNull($dao);
+        $this->assertIsA($dao, 'TableStatsMySQLDAO');
+    }
+
+    public function testGetShortLinkDAO() {
+        $dao = DAOFactory::getDAO('ShortLinkDAO');
+        $this->assertNotNull($dao);
+        $this->assertIsA($dao, 'ShortLinkMySQLDAO');
+    }
+
+    public function testInsightBaselineDAO() {
+        $dao = DAOFactory::getDAO('InsightBaselineDAO');
+        $this->assertNotNull($dao);
+        $this->assertIsA($dao, 'InsightBaselineMySQLDAO');
+    }
+
+    public function testInsightDAO() {
+        $dao = DAOFactory::getDAO('InsightDAO');
+        $this->assertNotNull($dao);
+        $this->assertIsA($dao, 'InsightMySQLDAO');
+    }
+    /**
      * Test get InstallerDAO without a config file, override with array of config values
      */
     public function testGetInstallerDAONoConfigFile(){
         $this->removeConfigFile();
         Config::destroyInstance();
-        $cfg_values = array("table_prefix"=>"tu_", "db_host"=>"localhost");
+        $cfg_values = array("table_prefix"=>ThinkUpTestDatabaseHelper::$prefix, "db_host"=>"localhost");
         $config = Config::getInstance($cfg_values);
         $dao = DAOFactory::getDAO('InstallerDAO', $cfg_values);
         $this->assertTrue(isset($dao));
         $this->assertIsA($dao, 'InstallerMySQLDAO');
         $result = $dao->getTables();
-        $this->assertEqual(sizeof($result), 16);
+        $this->assertEqual(sizeof($result), 32);
         $this->assertEqual($result[0], $cfg_values["table_prefix"].'encoded_locations');
         $this->restoreConfigFile();
+    }
+    /**
+     * Test get InstallerDAO by overriding with array of config values
+     */
+    public function testGetDAOWithConfigArrayOverride(){
+        $cfg_values = array("table_prefix"=>ThinkUpTestDatabaseHelper::$prefix, "db_host"=>"localhost",
+        'db_password'=>'funkydunkywrongpasswordyo', 'db_type'=>'notsupported');
+        try {
+            DAOFactory::getDAO('InstallerDAO', $cfg_values);
+            $this->fail('should throw an exception');
+        } catch(Exception $e) {
+            $this->assertPattern("/No db mapping defined for 'InstallerDAO' with db type: notsupported/",
+            $e->getMessage());
+        }
     }
 }

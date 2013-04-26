@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfSession.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Guillaume Boudreau
+ * Copyright (c) 2009-2013 Gina Trapani, Guillaume Boudreau
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,13 +23,13 @@
  * Test of Session
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Guillaume Boudreau
+ * @copyright 2009-2013 Gina Trapani, Guillaume Boudreau
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 
 
 class TestOfSession extends ThinkUpUnitTestCase {
@@ -52,6 +52,9 @@ class TestOfSession extends ThinkUpUnitTestCase {
 
     public function testIsNotLoggedIn() {
         $this->assertFalse(Session::isLoggedIn());
+        $is = Session::isLoggedIn();
+        $this->assertIsA($is, 'boolean');
+        $this->assertTrue($is === false);
     }
 
     public function testIsLoggedIn() {
@@ -94,10 +97,26 @@ class TestOfSession extends ThinkUpUnitTestCase {
         $this->assertEqual($_SESSION[$config->getValue('source_root_path')]['user'], 'me@example.com');
         $this->assertTrue(isset($_SESSION[$config->getValue('source_root_path')]['user_is_admin']));
         $this->assertFalse($_SESSION[$config->getValue('source_root_path')]['user_is_admin']);
-        //        $cryptpass = $session->pwdcrypt("secretpassword");
-        //
-        //        $owner = array('id'=>1, 'email'=>'me@example.com', 'pwd'=>$cryptpass, 'is_activated'=>1);
-        //        $this->builder1 = FixtureBuilder::build('owners', $owner);
+        // we should have a CSRF token
+        $this->assertNotNull($_SESSION[$config->getValue('source_root_path')]['csrf_token']);
+    }
+
+    public function testGetCSRFToken() {
+        $val = array();
+        $val["id"] = 10;
+        $val["user_name"] = 'testuser';
+        $val["full_name"] = 'Test User';
+        $val['email'] = 'me@example.com';
+        $val['last_login'] = '1/1/2006';
+        $val["is_admin"] = 0;
+        $val["is_activated"] = 1;
+        $val["failed_logins"] = 0;
+        $val["account_status"] = '';
+        $owner = new Owner($val);
+        $session = new Session();
+        $this->assertNull($session->getCSRFToken());
+        $session->completeLogin($owner);
+        $this->assertNotNull($session->getCSRFToken());
     }
 
     public function testCompleteLoginAndIsLoggedInIsAdmin() {
@@ -148,23 +167,6 @@ class TestOfSession extends ThinkUpUnitTestCase {
         $this->assertFalse(Session::isLoggedIn());
         $this->assertFalse(Session::isAdmin());
         $this->assertNull(Session::getLoggedInUser());
-    }
-
-    public function testIsAPICallAuthorized() {
-        $builders = $this->buildData();
-        $this->assertTrue(Session::isAPICallAuthorized('me@example.com', '1829cc1b13f920a05fb201e8d2a9e4dc58b669b1'));
-        $this->assertFalse(Session::isAPICallAuthorized('me@example.com', '1829cc1b13f920a05fb201e8d2a9e4dc58b669b2'));
-        $this->assertFalse(Session::isAPICallAuthorized('me@example.com', null));
-        $this->assertFalse(Session::isAPICallAuthorized(null, '1829cc1b13f920a05fb201e8d2a9e4dc58b669b1'));
-        $this->assertFalse(Session::isAPICallAuthorized(null, null));
-    }
-
-    public function testGetAPISecretFromPassword() {
-        $this->assertEqual(Session::getAPISecretFromPassword('XXX'),
-        '1829cc1b13f920a05fb201e8d2a9e4dc58b669b1');
-        $this->assertEqual(Session::getAPISecretFromPassword(
-        'abcdefghijklmnopqrstuvwxyz1234567890,.é;èà^=-/\'É":ÈÇ¨+_)(*&?%$#@\\'), 
-        '450f86da4df70ba8957cb230c01c0f6c1347e19c');
     }
 
     private function buildData() {

@@ -2,7 +2,7 @@
 /*
  Plugin Name: Expand URLs
  Plugin URI: http://github.com/ginatrapani/thinkup/tree/master/webapp/plugins/expandurls/
- Description: Expands shortened links.
+ Description: Expand shortened links.
  Icon: assets/img/plugin_icon.png
  Version: 0.01
  Author: Gina Trapani
@@ -12,11 +12,11 @@
  *
  * ThinkUp/webapp/plugins/expandurls/controller/expandurls.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -31,11 +31,11 @@
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 
-$webapp = Webapp::getInstance();
-$webapp->registerPlugin('expandurls', 'ExpandURLsPlugin');
+$webapp_plugin_registrar = PluginRegistrarWebapp::getInstance();
+$webapp_plugin_registrar->registerPlugin('expandurls', 'ExpandURLsPlugin');
 
-$crawler = Crawler::getInstance();
-$crawler->registerCrawlerPlugin('ExpandURLsPlugin');
+$crawler_plugin_registrar = PluginRegistrarCrawler::getInstance();
+$crawler_plugin_registrar->registerCrawlerPlugin('ExpandURLsPlugin');

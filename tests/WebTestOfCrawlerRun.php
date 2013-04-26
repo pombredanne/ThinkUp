@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/WebTestOfCrawlerRun.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,12 +23,12 @@
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/web_tester.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/web_tester.php';
 
 class WebTestOfCrawlerRun extends ThinkUpWebTestCase {
 
@@ -49,19 +49,17 @@ class WebTestOfCrawlerRun extends ThinkUpWebTestCase {
 
         $this->click("Log In");
 
-        $this->assertTitle("thinkupapp's Dashboard | ThinkUp");
-        $this->assertText('Logged in as: me@example.com');
-        $this->assertText('thinkupapp');
-
-        $this->assertText('1 month ago');
+        $this->assertTitle(Config::getInstance()->getValue('app_title_prefix') . "ThinkUp");
+        $this->assertText('me@example.com');
 
         //For the sake of time, set all instances to inactive so the crawler itself doesn't actually run
-        $q = "UPDATE tu_instances SET is_active=0;";
+        $q = "UPDATE #prefix#instances SET is_active=0;";
         $this->testdb_helper->runSQL($q);
 
-        $this->click("1 month ago");
+        $this->clickLinkById('refresh-data');
         //$this->showHeaders();
-        $this->assertHeader('Content-Type', 'text/html; charset=UTF-8');
+        $this->assertHeader('Content-Type', 'text/html; charset=UTF-8; charset=UTF-8');
+        $this->assertText('Updating...');
     }
 
     public function testNotLoggedIn() {

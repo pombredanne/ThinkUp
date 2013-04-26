@@ -5,11 +5,11 @@
  *
  * ThinkUp/webapp/_lib/model/class.User.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -29,7 +29,7 @@
  * It does not represent not ThinkUp users, see the Owner class for ThinkUp users.
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
@@ -96,6 +96,12 @@ class User {
     var $post_count;
     /**
      *
+     * @var date
+     */
+    var $last_updated;
+
+    /**
+     *
      * @var str
      */
     var $found_in;
@@ -137,7 +143,7 @@ class User {
      * @return User New user
      */
     public function __construct($val = false, $found_in = false) {
-        if($val){
+        if ($val){
             if (isset($val['id'])) {
                 $this->id = $val['id'];
             }
@@ -159,6 +165,9 @@ class User {
             if (isset($val['last_post_id'])) {
                 $this->last_post_id = $val['last_post_id'];
             }
+            if (isset($val['last_updated'])) {
+                $this->last_updated = $val['last_updated'];
+            }
             if (isset($val['friend_count'])) {
                 $this->friend_count = $val['friend_count'];
             }
@@ -168,7 +177,9 @@ class User {
             if (isset($val['last_post'])) {
                 $this->last_post = $val['last_post'];
             }
-            $this->joined = $val['joined'];
+            if (isset($val['joined'])) {
+                $this->joined = $val['joined'];
+            }
             $this->found_in = $found_in;
 
             if (isset($val['avg_tweets_per_day'])) {

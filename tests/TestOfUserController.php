@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfUserController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,11 +23,11 @@
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 
 class TestOfUserController extends ThinkUpUnitTestCase {
 
@@ -45,7 +45,7 @@ class TestOfUserController extends ThinkUpUnitTestCase {
 
         $config = Config::getInstance();
         $this->assertEqual('You must <a href="'.$config->getValue('site_root_path').
-        'session/login.php">log in</a> to do this.', $v_mgr->getTemplateDataItem('errormsg'));
+        'session/login.php">log in</a> to do this.', $v_mgr->getTemplateDataItem('error_msg'));
     }
 
     public function testMissingParams() {
@@ -90,7 +90,7 @@ class TestOfUserController extends ThinkUpUnitTestCase {
         $this->assertEqual($v_mgr->getTemplateDataItem('next_page'), null);
         $this->assertEqual($v_mgr->getTemplateDataItem('last_page'), 0);
 
-        $this->assertEqual($controller->getCacheKeyString(), 'user.index.tpl-me@example.com-someuser1-twitter');
+        $this->assertEqual($controller->getCacheKeyString(), '.htuser.index.tpl-me@example.com-someuser1-twitter');
     }
 
     public function testExistentUserWithInstance() {
@@ -115,7 +115,7 @@ class TestOfUserController extends ThinkUpUnitTestCase {
         //we're on the first page by default, so no last page
         $this->assertEqual($v_mgr->getTemplateDataItem('last_page'), null);
         $this->assertEqual($controller->getCacheKeyString(),
-        'user.index.tpl-me@example.com-someuser1-twitter-instancetestuser');
+        '.htuser.index.tpl-me@example.com-someuser1-twitter-instancetestuser');
     }
 
     public function testUserPostPaging() {
@@ -147,7 +147,7 @@ class TestOfUserController extends ThinkUpUnitTestCase {
         $this->assertEqual($v_mgr->getTemplateDataItem('next_page'), 2);
         $this->assertEqual($v_mgr->getTemplateDataItem('last_page'), null);
         $this->assertEqual($controller->getCacheKeyString(),
-        'user.index.tpl-me@example.com-someuser1-twitter-instancetestuser');
+        '.htuser.index.tpl-me@example.com-someuser1-twitter-instancetestuser');
 
         //Second page
         $_GET['page'] = '2';
@@ -164,7 +164,7 @@ class TestOfUserController extends ThinkUpUnitTestCase {
         $this->assertEqual($v_mgr->getTemplateDataItem('next_page'), 3);
         $this->assertEqual($v_mgr->getTemplateDataItem('last_page'), 1);
         $this->assertEqual($controller->getCacheKeyString(),
-        'user.index.tpl-me@example.com-someuser1-twitter-instancetestuser-2');
+        '.htuser.index.tpl-me@example.com-someuser1-twitter-instancetestuser-2');
 
         //Third (last) page
         $_GET['page'] = '3';
@@ -181,7 +181,7 @@ class TestOfUserController extends ThinkUpUnitTestCase {
         $this->assertEqual($v_mgr->getTemplateDataItem('next_page'), null);
         $this->assertEqual($v_mgr->getTemplateDataItem('last_page'), 2);
         $this->assertEqual($controller->getCacheKeyString(),
-        'user.index.tpl-me@example.com-someuser1-twitter-instancetestuser-3');
+        '.htuser.index.tpl-me@example.com-someuser1-twitter-instancetestuser-3');
     }
 
     private function buildData() {

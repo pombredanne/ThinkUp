@@ -3,13 +3,13 @@
  *
  * ThinkUp/tests/TestOfToggleActiveOwnerController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * @author Randi Miller <techrandy[at]gmail[dot]com>
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -25,11 +25,11 @@
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 
 class TestOfToggleActiveOwnerController extends ThinkUpUnitTestCase {
 
@@ -52,7 +52,7 @@ class TestOfToggleActiveOwnerController extends ThinkUpUnitTestCase {
         $v_mgr = $controller->getViewManager();
         $config = Config::getInstance();
         $this->assertEqual('You must <a href="'.$config->getValue('site_root_path').
-        'session/login.php">log in</a> to do this.', $v_mgr->getTemplateDataItem('errormsg'));
+        'session/login.php">log in</a> to do this.', $v_mgr->getTemplateDataItem('error_msg'));
     }
 
     public function testNotAnAdmin() {
@@ -62,7 +62,7 @@ class TestOfToggleActiveOwnerController extends ThinkUpUnitTestCase {
 
         $v_mgr = $controller->getViewManager();
         $config = Config::getInstance();
-        $this->assertEqual('You must be a ThinkUp admin to do this', $v_mgr->getTemplateDataItem('errormsg'));
+        $this->assertEqual('You must be a ThinkUp admin to do this', $v_mgr->getTemplateDataItem('error_msg'));
     }
 
     public function testMissingOwnerIdParam() {
@@ -90,9 +90,24 @@ class TestOfToggleActiveOwnerController extends ThinkUpUnitTestCase {
         $this->assertEqual($results, 0, $results);
     }
 
+    public function testBothParamsExistentInstanceNoCSRFToken() {
+        $builder = FixtureBuilder::build('owners', array('id'=>51, 'email'=>'me123@example.com', 'is_active'=>0));
+        $this->simulateLogin('me@example.com', true, true);
+        $_GET['oid'] = '51';
+        $_GET['a'] = '1';
+        $controller = new ToggleActiveOwnerController(true);
+        try {
+            $results = $controller->control();
+            $this->fail("should throw InvalidCSRFTokenException");
+        } catch(InvalidCSRFTokenException $e) {
+            $this->assertIsA($e, 'InvalidCSRFTokenException');
+        }
+    }
+
     public function testBothParamsExistentInstance() {
         $builder = FixtureBuilder::build('owners', array('id'=>51, 'email'=>'me123@example.com', 'is_active'=>0));
-        $this->simulateLogin('me@example.com', true);
+        $this->simulateLogin('me@example.com', true, true);
+        $_GET['csrf_token'] = parent::CSRF_TOKEN;
         $_GET['oid'] = '51';
         $_GET['a'] = '1';
         $controller = new ToggleActiveOwnerController(true);

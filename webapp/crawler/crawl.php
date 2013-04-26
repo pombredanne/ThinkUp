@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/crawler/crawl.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Guillaume Boudreau
+ * Copyright (c) 2009-2013 Gina Trapani, Guillaume Boudreau
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -24,9 +24,9 @@
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @author Guillaume Boudreau <gboudreau[at]pommepause[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Guillaume Boudreau
+ * @copyright 2009-2013 Gina Trapani, Guillaume Boudreau
  */
-chdir("..");
+chdir(dirname(__FILE__) . "/..");
 require_once 'init.php';
 
 $controller = new CrawlerAuthController($argc, $argv);

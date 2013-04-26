@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/plugins/hellothinkup/tests/TestOfHelloThinkUpPluginConfigurationController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Mark Wilkie
+ * Copyright (c) 2009-2013 Gina Trapani, Mark Wilkie
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -24,13 +24,13 @@
  * Test of TestOfHelloThinkUpPluginConfigurationController
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Mark Wilkie
+ * @copyright 2009-2013 Gina Trapani, Mark Wilkie
  * @author Mark Wilkie <mwilkie[at]gmail[dot]com>
  *
  */
-require_once 'tests/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
+require_once dirname(__FILE__) . '/../../../../tests/init.tests.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 require_once THINKUP_ROOT_PATH.'tests/classes/class.ThinkUpBasicUnitTestCase.php';
 
 require_once THINKUP_ROOT_PATH.
@@ -40,8 +40,8 @@ class TestOfHelloThinkUpPluginConfigurationController extends ThinkUpUnitTestCas
 
     public function setUp(){
         parent::setUp();
-        $webapp = Webapp::getInstance();
-        $webapp->registerPlugin('hellothinkup', 'HelloThinkUpPlugin');
+        $webapp_plugin_registrar = PluginRegistrarWebapp::getInstance();
+        $webapp_plugin_registrar->registerPlugin('hellothinkup', 'HelloThinkUpPlugin');
     }
 
     public function tearDown(){
@@ -60,7 +60,7 @@ class TestOfHelloThinkUpPluginConfigurationController extends ThinkUpUnitTestCas
         $v_mgr = $controller->getViewManager();
         $config = Config::getInstance();
         $this->assertEqual('You must <a href="'.$config->getValue('site_root_path').
-        'session/login.php">log in</a> to do this.', $v_mgr->getTemplateDataItem('errormsg'));
+        'session/login.php">log in</a> to do this.', $v_mgr->getTemplateDataItem('error_msg'));
 
         // logged in
         // build a user
@@ -74,8 +74,21 @@ class TestOfHelloThinkUpPluginConfigurationController extends ThinkUpUnitTestCas
         $v_mgr = $controller->getViewManager();
         $message = $v_mgr->getTemplateDataItem('message');
         $this->assertEqual($message,
-        'Hello, world! This is the example plugin configuration page for  me@example.com.', 'message set ' . $message);
+        'Hello ThinkUp world! This is an example plugin configuration page for  me@example.com.');
 
+    }
+
+    public function testTextInputSize() {
+        //not logged in, no owner set
+        $controller = new HelloThinkUpPluginConfigurationController(null, 'hellothinkup');
+        $builder = FixtureBuilder::build('owners', array('email' => 'me@example.com', 'user_activated' => 1) );
+
+        $this->simulateLogin('me@example.com');
+        $owner_dao = DAOFactory::getDAO('OwnerDAO');
+        $owner = $owner_dao->getByEmail(Session::getLoggedInUser());
+        $controller = new HelloThinkUpPluginConfigurationController($owner, 'hellothinkup');
+        $output = $controller->go();
+        $this->assertEqual($controller->option_elements['testname']['size'], 40);
     }
 
     public function testOptionList2HashByOptionName() {
@@ -117,7 +130,7 @@ class TestOfHelloThinkUpPluginConfigurationController extends ThinkUpUnitTestCas
         //parse option_markup
         $doc = new DOMDocument();
         // parse our html
-        $doc = DOMDocument::loadHTML("<html><body>" . $options_markup . "</body></html>");
+        $doc->loadHTML("<html><body>" . $options_markup . "</body></html>");
 
     }
 
@@ -154,7 +167,7 @@ class TestOfHelloThinkUpPluginConfigurationController extends ThinkUpUnitTestCas
         //parse option_markup
         $doc = new DOMDocument();
         // parse our html
-        $doc = DOMDocument::loadHTML("<html><body>" . $options_markup . "</body></html>");
+        $doc->loadHTML("<html><body>" . $options_markup . "</body></html>");
 
         // we have a text form element with proper data
         $input_field = $this->getElementById($doc, 'plugin_options_testname');
@@ -165,7 +178,7 @@ class TestOfHelloThinkUpPluginConfigurationController extends ThinkUpUnitTestCas
         // submit and elemnts should be disbaled
         $this->assertFalse($input_field->getAttribute('disabled'));
         $submit_p = $this->getElementById($doc, 'plugin_option_submit_p');
-        $this->assertPattern('/type="submit".*save options/', $doc->saveXML( $submit_p ) );
+        $this->assertPattern('/type="submit".*Save Settings/', $doc->saveXML( $submit_p ) );
 
 
     }
@@ -195,7 +208,7 @@ class TestOfHelloThinkUpPluginConfigurationController extends ThinkUpUnitTestCas
         //parse option_markup
         $doc = new DOMDocument();
         // parse our html
-        $doc = DOMDocument::loadHTML("<html><body>" . $options_markup . "</body></html>");
+        $doc->loadHTML("<html><body>" . $options_markup . "</body></html>");
 
         // we have a text form element with proper data
         $radio_div = $this->getElementById($doc, 'plugin_options_testradio');
@@ -205,7 +218,7 @@ class TestOfHelloThinkUpPluginConfigurationController extends ThinkUpUnitTestCas
         $this->assertEqual( $radios->item(1)->getAttribute('value'), '2');
         $this->assertEqual( $radios->item(2)->getAttribute('value'), '3');
         $submit_p = $this->getElementById($doc, 'plugin_option_submit_p');
-        $this->assertPattern('/type="submit".*save options/', $doc->saveXML( $submit_p ) );
+        $this->assertPattern('/type="submit".*Save Settings/', $doc->saveXML( $submit_p ) );
 
     }
 
@@ -233,7 +246,7 @@ class TestOfHelloThinkUpPluginConfigurationController extends ThinkUpUnitTestCas
         //parse option_markup
         $doc = new DOMDocument();
         // parse our html
-        $doc = DOMDocument::loadHTML("<html><body>" . $options_markup . "</body></html>");
+        $doc->loadHTML("<html><body>" . $options_markup . "</body></html>");
 
         // we have a text form element with proper data
         $select = $this->getElementById($doc, 'plugin_options_testbirthyear');
@@ -244,7 +257,7 @@ class TestOfHelloThinkUpPluginConfigurationController extends ThinkUpUnitTestCas
         $this->assertEqual( $options->item(110)->getAttribute('value'), '2010');
 
         $submit_p = $this->getElementById($doc, 'plugin_option_submit_p');
-        $this->assertPattern('/type="submit".*save options/', $doc->saveXML( $submit_p ) );
+        $this->assertPattern('/type="submit".*Save Settings/', $doc->saveXML( $submit_p ) );
 
     }
 
@@ -265,7 +278,7 @@ class TestOfHelloThinkUpPluginConfigurationController extends ThinkUpUnitTestCas
         //parse option_markup
         $doc = new DOMDocument();
         // parse our html
-        $doc = DOMDocument::loadHTML("<html><body>" . $options_markup . "</body></html>");
+        $doc->loadHTML("<html><body>" . $options_markup . "</body></html>");
 
         $show_adv = $this->getElementById($doc, 'adv-flip-prompt');
         $this->assertPattern('/Show/', $doc->saveXML( $show_adv ) );

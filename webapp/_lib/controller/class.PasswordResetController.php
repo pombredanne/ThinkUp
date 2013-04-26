@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/controller/class.PasswordResetController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Michael Louis Thaler
+ * Copyright (c) 2009-2013 Gina Trapani, Michael Louis Thaler
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -25,7 +25,7 @@
  * Given the correct hash, changes a ThinkUp user's password and activates a deactivated account.
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  * @author Michael Louis Thaler <michael.louis.thaler[at]gmail[dot]com>
  */
 class PasswordResetController extends ThinkUpController {
@@ -34,8 +34,14 @@ class PasswordResetController extends ThinkUpController {
         $session = new Session();
         $owner_dao = DAOFactory::getDAO('OwnerDAO');
 
+        $this->view_mgr->addHelp('reset', 'userguide/accounts/index');
         $this->setViewTemplate('session.resetpassword.tpl');
+        $this->addHeaderJavaScript('assets/js/jqBootstrapValidation.js');
+        $this->addHeaderJavaScript('assets/js/validate-fields.js');
         $this->disableCaching();
+
+        $config = Config::getInstance();
+        $this->addToView('is_registration_open', $config->getValue('is_registration_open'));
 
         if (!isset($_GET['token']) || !preg_match('/^[\da-f]{32}$/', $_GET['token']) ||
         (!$user = $owner_dao->getByPasswordToken($_GET['token']))) {
@@ -52,11 +58,14 @@ class PasswordResetController extends ThinkUpController {
         if (isset($_POST['password'])) {
             if ($_POST['password'] == $_POST['password_confirm']) {
                 $login_controller = new LoginController(true);
-                if ($owner_dao->updatePassword($user->email, $session->pwdcrypt($_POST['password'])) < 1 ) {
+                // Try to update the password
+                if ($owner_dao->updatePassword($user->email, $_POST['password'] ) < 1 ) {
                     $login_controller->addErrorMessage('Problem changing your password!');
                 } else {
                     $owner_dao->activateOwner($user->email);
                     $owner_dao->clearAccountStatus($user->email);
+                    $owner_dao->resetFailedLogins($user->email);
+                    $owner_dao->updatePasswordToken($user->email, '');
                     $login_controller->addSuccessMessage('You have changed your password.');
                 }
                 return $login_controller->go();

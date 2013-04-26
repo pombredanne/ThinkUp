@@ -1,14 +1,11 @@
-<div class="">
-  {if $description}<i>{$description}</i>{/if}
-    {if $is_searchable}
-        <a href="#" class="grid_search" title="Search" onclick="return false;">
-        <img src="{$site_root_path}assets/img/search-icon.gif" id="grid_search_icon"></a>
-        {include file="_grid.search.tpl"}
-    {/if}
+<div class="section">
+<div class="clearfix">
+    {insert name="help_link" id=$display}
+    <h2>{if $parent_name}<a href="?v={$parent}&u={$instance->network_username|urlencode}&n={$instance->network|urlencode}">{$parent_name}</a> &rarr; {/if}{$header}</h2>
+    {if $description}<h3>{$description}</h3>{/if}
 </div>
 
-{if ($display eq 'all_facebook_posts' and not $all_facebook_posts) or 
-    ($display eq 'all_facebook_replies' and not $all_facebook_replies) }
+{if ($display eq 'posts-all' and not $all_facebook_posts) }
   <div class="ui-state-highlight ui-corner-all" style="margin: 20px 0px; padding: .5em 0.7em;"> 
     <p>
       <span class="ui-icon ui-icon-info" style="float: left; margin:.3em 0.3em 0 0;"></span>
@@ -17,21 +14,39 @@
   </div>
 {/if}
 
-{if $all_facebook_posts and ($display eq 'all_facebook_posts' OR $display eq 'questions')}
+<div class="header">
+    {if $is_searchable}<a href="#" class="grid_search" title="Search" onclick="return false;"><span id="grid_search_icon">Search</span></a>{/if}
+    {if $logged_in_user and $display eq 'posts-all'} | <a href="{$site_root_path}post/export.php?u={$instance->network_username|urlencode}&n={$instance->network|urlencode}">Export</a>{/if}
+</div>
+    
+
+{if $all_facebook_posts and ($display eq 'posts-all' OR $display eq 'posts-questions')}
+<div id="all-posts-div">
   {foreach from=$all_facebook_posts key=tid item=t name=foo}
-    {include file="_post.tpl" t=$t}
+    {include file="_post.counts_no_author.tpl" post=$t show_favorites_instead_of_retweets="true"}
   {/foreach}
+</div>
 {/if}
 
 {if $most_replied_to_posts}
+<div id="all-posts-div">
   {foreach from=$most_replied_to_posts key=tid item=t name=foo}
+        {include file="_post.counts_no_author.tpl" post=$t show_favorites_instead_of_retweets="true"}
+  {/foreach}
+</div>
+{/if}
+
+{if $messages_to_you}
+<div id="all-posts-div">
+  {foreach from=$messages_to_you key=tid item=t name=foo}
     {include file="_post.tpl" t=$t}
   {/foreach}
+</div>
 {/if}
 
 
 {if ($display eq 'followers_mostfollowed' and not $facebook_users) or ($display eq 'friends_mostactive' and not $facebook_users) }
-  <div class="ui-state-highlight ui-corner-all" style="margin: 20px 0px; padding: .5em 0.7em;"> 
+  <div class="alert urgent"> 
     <p>
       <span class="ui-icon ui-icon-info" style="float: left; margin:.3em 0.3em 0 0;"></span>
       No Facebook users found.
@@ -46,7 +61,7 @@
 {/if}
 
 {if ($display eq 'links_from_friends' and not $links_from_friends)}
-  <div class="ui-state-highlight ui-corner-all" style="margin: 20px 0px; padding: .5em 0.7em;">
+  <div class="alert urgent">
     <p>
       <span class="ui-icon ui-icon-info" style="float: left; margin:.3em 0.3em 0 0;"></span>
       No data to display.
@@ -60,39 +75,18 @@
   {/foreach}  
 {/if}
 
-<script type="text/javascript">
-  {literal}
-  $(function() {
-    // Begin reply assignment actions.
-    $(".button").click(function() {
-      var element = $(this);
-      var Id = element.attr("id");
-      var oid = Id;
-      var pid = $("select#pid" + Id + " option:selected").val();
-      var u = '{/literal}{$i->network_username|escape:'url'}{literal}';
-      var t = 'inline.view.tpl';
-      var ck = '{/literal}{$i->network_username|escape:'url'}-{$logged_in_user}-{$display}{literal}';
-      var dataString = 'u=' + u + '&pid=' + pid + '&oid[]=' + oid + '&t=' + t + '&ck=' + ck;
-      $.ajax({
-        type: "GET",
-        url: "{/literal}{$site_root_path}{literal}post/mark-parent.php",
-        data: dataString,
-        success: function() {
-          $('#div' + Id).html("<div class='success' id='message" + Id + "'></div>");
-          $('#message' + Id).html("<p>Saved!</p>").hide().fadeIn(1500, function() {
-            $('#message'+Id);  
-          });
-        }
-      });
-      return false;
-    });
-  });
-  {/literal}
-</script>
-
 {if $is_searchable}
     {include file="_grid.search.tpl"}
     <script type="text/javascript" src="{$site_root_path}assets/js/grid_search.js"></script>
     
 {/if}
 
+<div class="view-all" id="older-posts-div">
+  {if $next_page}
+    <a href="{$site_root_path}dashboard.php?{if $smarty.get.v}v={$smarty.get.v}&{/if}{if $smarty.get.u}u={$smarty.get.u}&{/if}{if $smarty.get.n}n={$smarty.get.n|urlencode}&{/if}page={$next_page}" id="next_page">&#60; Older Posts</a>
+  {/if}
+  {if $last_page}
+    | <a href="{$site_root_path}dashboard.php?{if $smarty.get.v}v={$smarty.get.v}&{/if}{if $smarty.get.u}u={$smarty.get.u}&{/if}{if $smarty.get.n}n={$smarty.get.n|urlencode}&{/if}page={$last_page}" id="last_page">Newer Posts  &#62;</a>
+  {/if}
+</div>
+</div>

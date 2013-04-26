@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/WebTestOfLogin.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,12 +23,12 @@
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/web_tester.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/web_tester.php';
 
 class WebTestOfLogin extends ThinkUpWebTestCase {
 
@@ -47,9 +47,11 @@ class WebTestOfLogin extends ThinkUpWebTestCase {
         $this->setField('email', 'me@example.com');
         $this->setField('pwd', 'secretpassword');
         $this->click("Log In");
+        $this->get($this->url.'/dashboard.php');
 
-        $this->assertTitle("thinkupapp's Dashboard | ThinkUp");
-        $this->assertText('Logged in as: me@example.com');
+        $this->assertTitle("thinkupapp's Dashboard | " . Config::getInstance()->getValue('app_title_prefix') .
+        "ThinkUp");
+        $this->assertText('Logged in as admin: me@example.com');
     }
 
     public function testLoginFailureAttemptThenSuccess() {
@@ -70,8 +72,10 @@ class WebTestOfLogin extends ThinkUpWebTestCase {
         $this->setField('pwd', 'secretpassword');
         $this->click("Log In");
 
-        $this->assertTitle("thinkupapp's Dashboard | ThinkUp");
-        $this->assertText('Logged in as: me@example.com');
+        $this->get($this->url.'/dashboard.php');
+        $this->assertTitle("thinkupapp's Dashboard | " . Config::getInstance()->getValue('app_title_prefix') .
+        "ThinkUp");
+        $this->assertText('Logged in as admin: me@example.com');
     }
 
     public function testLoginLockout() {
@@ -81,8 +85,9 @@ class WebTestOfLogin extends ThinkUpWebTestCase {
             $this->setField('email', 'me@example.com');
             $this->setField('pwd', 'wrongpassword');
             $this->click("Log In");
+            //$this->showSource();
 
-            if ($i <= 11) {
+            if ($i < 10) {
                 $this->assertText('Incorrect password');
                 $this->assertField('email', 'me@example.com');
             } else {
@@ -90,5 +95,10 @@ class WebTestOfLogin extends ThinkUpWebTestCase {
             }
             $i = $i + 1;
         }
+    }
+
+    public function testAutofocusOnUserField() {
+        $this->get($this->url.'/session/login.php');
+        $this->assertPattern('/autofocus="autofocus"/');
     }
 }

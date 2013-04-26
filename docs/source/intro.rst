@@ -1,22 +1,27 @@
 Introduction
 ============
 
-Meet ThinkUp
-------------
+.. sidebar:: Nice to Meet You
 
-`ThinkUp <http://thinkupapp.com>`_ is a free, open source web application that captures your posts, tweets, replies,
+    We're an open source community of developers, writers, designers, bloggers, journalists, data nerds,
+    and social media enthusiasts whose goal is to make meaningful software with world-class documentation.
+    
+    You're reading the very beginning of that effort. This documentation is an incomplete, work-in-progress. Please 
+    join us and help :doc:`fill in the gaps </contribute/documentation>`.
+
+`ThinkUp <http://thinkup.com>`_ is a free, open source web application that captures your posts, tweets, replies,
 retweets, friends, followers and links on social networks like Twitter and Facebook. With ThinkUp, you can store your
 social activity in a database that YOU control, making it easy to search, sort, analyze, publish and display activity
 from your network. All you need is a web server that can run a PHP application.
 
-`Gina Trapani <http://ginatrapani.org>`_ began building ThinkUp as a personal project in 2009. Today, ThinkUp 
-development is led by `Expert Labs <http://expertlabs.org>`_, a non-profit startup that helps government be more
-effective by tapping in to the power of social networks.
+`Gina Trapani <http://ginatrapani.org>`_ began building ThinkUp as a personal project in 2009. From 2010 until 2012,
+`Expert Labs <http://expertlabs.org>`_ incubated ThinkUp. Today development is led by ThinkUp LLC, a company founded
+by Anil Dash and Gina Trapani.
 
 ThinkUp's source code is licensed under the `GNU General Public License <http://www.gnu.org/licenses/gpl.html>`_ and 
 is available on `GitHub <http://github.com/ginatrapani/ThinkUp>`_.
 
-Find out more at http://thinkupapp.com.
+Find out more at http://thinkup.com.
 
 Who ThinkUp Is For
 ------------------
@@ -35,8 +40,14 @@ feedback from fans and followers.
 **Publishers** like bloggers or broadcasters who want easy ways to measure reach and analyze content performance
 on social networks with readers, subscribers, and followers.
 
-Use Cases
----------
+What ThinkUp Can Do
+-------------------
+
+.. sidebar:: ThinkUp's Features in Action
+
+    .. raw:: html
+
+        <iframe title="YouTube video player" style="width: 100%; height:250px; border: 0;" src="http://www.youtube.com/embed/PnVe9NYolDU?rel=0"></iframe> 
 
 At its heart, ThinkUp is a conversation analysis tool. ThinkUp helps you pose questions to your followers on social
 networks, and compile and share the responses, whether you're The White House asking U.S. citizens what our country's
@@ -62,4 +73,3 @@ of your social network.
 
 **Export:** Export your tweets at any time and open them as a spreadsheet in Excel for further analysis. Or just save
 them for recordkeeping.
-

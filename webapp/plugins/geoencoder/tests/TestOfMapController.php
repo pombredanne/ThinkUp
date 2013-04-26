@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfMapController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Ekansh Preet Singh
+ * Copyright (c) 2009-2013 Gina Trapani, Ekansh Preet Singh
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -24,15 +24,15 @@
  * Test of Map Controller
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Ekansh Preet Singh
+ * @copyright 2009-2013 Gina Trapani, Ekansh Preet Singh
  * @author Ekansh Preet Singh <ekanshpreet[at]gmail[dot]com>
  * @author Mark Wilkie <mwilkie[at]gmail[dot]com>
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
-require_once 'tests/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/plugins/geoencoder/controller/class.MapController.php';
+require_once dirname(__FILE__) . '/../../../../tests/init.tests.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'plugins/geoencoder/controller/class.MapController.php';
 
 class TestOfMapController extends ThinkUpUnitTestCase {
 
@@ -52,7 +52,6 @@ class TestOfMapController extends ThinkUpUnitTestCase {
         $controller = new MapController(true);
         $results = $controller->go();
 
-        $this->assertPattern('/All Post Locations/', $results);
         $this->assertNoPattern("/This is a private retweet to 1001/", $results);
         $this->assertNoPattern("/This is a private reply to 1001/", $results);
     }
@@ -132,7 +131,7 @@ class TestOfMapController extends ThinkUpUnitTestCase {
      * Method to instantiate FixtureBuilder
      */
     private function buildData() {
-        $post_data = array( 'post_id' => 1001, 'post_text' => 'This is a test post',
+        $post_data = array( 'post_id' => 1001, 'post_text' => 'This is a test post', 'author_user_id'=>'10',
         'location' => 'New Delhi, Delhi, India', 'geo' => '28.11,78.08', 'is_geo_encoded' => 1 );
         $post_builder = FixtureBuilder::build('posts', $post_data);
 
@@ -142,37 +141,37 @@ class TestOfMapController extends ThinkUpUnitTestCase {
         $public_reply_author_builder1 = FixtureBuilder::build('users', array('user_id'=>'11', 'username'=>'jack',
         'is_protected'=>'0', 'network'=>'twitter'));
         $reply_builder1 = FixtureBuilder::build('posts', array('post_id'=>'1002', 'author_user_id'=>'11',
-        'author_username'=>'jack', 'post_text'=>'This is a public reply to 1001', 'network'=>'twitter', 
+        'author_username'=>'jack', 'post_text'=>'This is a public reply to 1001', 'network'=>'twitter',
         'in_reply_to_post_id'=>1001, 'is_geo_encoded'=>1, 'geo'=>'10,20'));
 
         $public_reply_author_builder2 = FixtureBuilder::build('users', array('user_id'=>'12', 'username'=>'jill',
         'is_protected'=>'0', 'network'=>'twitter'));
         $reply_builder2 = FixtureBuilder::build('posts', array('post_id'=>'1003', 'author_user_id'=>'12',
-        'author_username'=>'jill', 'post_text'=>'This is a public reply to 1001', 'network'=>'twitter', 
+        'author_username'=>'jill', 'post_text'=>'This is a public reply to 1001', 'network'=>'twitter',
         'in_reply_to_post_id'=>1001, 'is_geo_encoded'=>1, 'geo'=>'10,20'));
 
         $private_reply_author_builder1 = FixtureBuilder::build('users', array('user_id'=>'13', 'username'=>'mary',
         'is_protected'=>'1', 'network'=>'twitter'));
         $reply_builder3 = FixtureBuilder::build('posts', array('post_id'=>'1004', 'author_user_id'=>'13',
-        'author_username'=>'mary', 'post_text'=>'This is a private reply to 1001', 'network'=>'twitter', 
+        'author_username'=>'mary', 'post_text'=>'This is a private reply to 1001', 'network'=>'twitter',
         'in_reply_to_post_id'=>1001, 'is_geo_encoded'=>1, 'geo'=>'10,20'));
 
         $private_retweet_author_builder1 = FixtureBuilder::build('users', array('user_id'=>'14', 'username'=>'joan',
         'is_protected'=>'1', 'network'=>'twitter'));
         $retweet_builder1 = FixtureBuilder::build('posts', array('post_id'=>'1005', 'author_user_id'=>'14',
-        'author_username'=>'joan', 'post_text'=>'This is a private retweet of 1001', 'network'=>'twitter', 
+        'author_username'=>'joan', 'post_text'=>'This is a private retweet of 1001', 'network'=>'twitter',
         'in_retweet_of_post_id'=>1001, 'is_geo_encoded'=>1, 'geo'=>'10,20'));
 
         $private_retweet_author_builder2 = FixtureBuilder::build('users', array('user_id'=>'15', 'username'=>'peggy',
         'is_protected'=>'1', 'network'=>'twitter'));
         $retweet_builder2 = FixtureBuilder::build('posts', array('post_id'=>'1006', 'author_user_id'=>'15',
-        'author_username'=>'peggy', 'post_text'=>'This is a private retweet of 1001', 'network'=>'twitter', 
+        'author_username'=>'peggy', 'post_text'=>'This is a private retweet of 1001', 'network'=>'twitter',
         'in_retweet_of_post_id'=>1001, 'is_geo_encoded'=>1, 'geo'=>'10,20'));
 
         $public_retweet_author_builder1 = FixtureBuilder::build('users', array('user_id'=>'16', 'username'=>'don',
         'is_protected'=>'0', 'network'=>'twitter'));
         $retweet_builder3 = FixtureBuilder::build('posts', array('post_id'=>'1007', 'author_user_id'=>'16',
-        'author_username'=>'don', 'post_text'=>'This is a private retweet of 1001', 'network'=>'twitter', 
+        'author_username'=>'don', 'post_text'=>'This is a private retweet of 1001', 'network'=>'twitter',
         'in_retweet_of_post_id'=>1001, 'is_geo_encoded'=>1, 'geo'=>'10,20'));
 
         return array($post_builder, $original_post_author_builder, $public_reply_author_builder1, $reply_builder1,

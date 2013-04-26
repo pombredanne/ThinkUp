@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/plugins/flickrthumbnails/tests/classes/mock.FlickrAPIAccessor.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,7 +23,7 @@
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 class FlickrAPIAccessor {
     var $api_url = "http://api.flickr.com/services/rest/?";
@@ -38,12 +38,21 @@ class FlickrAPIAccessor {
     }
 
     public function getFlickrPhotoSource($u) {
-        $FAUX_DATA_PATH = THINKUP_ROOT_PATH . 'webapp/plugins/expandurls/tests/testdata/';
+        $debug = (getenv('TEST_DEBUG')!==false) ? true : false;
+
+        $FAUX_DATA_PATH = THINKUP_WEBAPP_PATH.'plugins/expandurls/tests/testdata/';
+        if ($debug) {
+            echo "getFlickrPhotoSource ".$u . "\n";
+        }
 
         if ($this->api_key != '') {
             $this->logger->logInfo("Flickr API key set", __METHOD__.','.__LINE__);
             $photo_short_id = substr($u, strlen('http://flic.kr/p/'));
             $photo_id = $this->base_decode($photo_short_id);
+            if ($debug) {
+                echo "decoded photo_id ".$photo_id . "\n";
+            }
+
             $params = array('method'=>$this->method, 'photo_id'=>$photo_id, 'api_key'=>$this->api_key,
             'format'=>$this->format, );
 
@@ -63,7 +72,11 @@ class FlickrAPIAccessor {
             $api_call = str_replace('/', '_', $api_call);
             $api_call = str_replace('?', '-', $api_call);
             $api_call = str_replace('&', '-', $api_call);
-            //echo "READING LOCAL DATA FILE: ".$FAUX_DATA_PATH.$api_call . "\n";
+
+            if ($debug) {
+                echo "READING LOCAL DATA FILE: ".$FAUX_DATA_PATH.$api_call . "\n";
+            }
+
             $resp = file_get_contents($FAUX_DATA_PATH.$api_call);
 
             if ($resp === "NONRESPONSE") {
@@ -78,19 +91,19 @@ class FlickrAPIAccessor {
                         if ($s['label'] == 'Small')
                         $src = $s['source'];
                     }
-                    return array("expanded_url"=>$src, "error"=>'');
+                    return array("image_src"=>$src, "error"=>'');
                 } else {
                     $this->logger->logInfo("ERROR: '".$fphoto['message']."'", __METHOD__.','.__LINE__);
-                    return array("expanded_url"=>'', "error"=>$fphoto['message']);
+                    return array("image_src"=>'', "error"=>$fphoto['message']);
                 }
 
             } else {
                 $this->logger->logInfo("ERROR: No response from Flickr API", __METHOD__.','.__LINE__);
-                return array("expanded_url"=>'', "error"=>'No response from Flickr API');
+                return array("image_src"=>'', "error"=>'No response from Flickr API');
             }
         } else {
             $this->logger->logInfo("ERROR: Flickr API key is not set", __METHOD__.','.__LINE__);
-            return array("expanded_url"=>'', "error"=>'');
+            return array("image_src"=>'', "error"=>'');
         }
     }
 

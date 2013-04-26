@@ -13,7 +13,7 @@ var is_admin = {if $user_is_admin}true;{else}false;{/if}
         {assign var='required_values_set' value=false}
     {/if}
 {/foreach}
-var required_values_set = {if $required_values_set}true{else}false{/if}
+var required_values_set = {if $required_values_set}true{else}false{/if};
 
 {literal}
 var advanced_visible = false;
@@ -23,13 +23,13 @@ function show_advanced() {
         $(".advanced-option-input").hide();
         $('#adv-flip-prompt').html('Show');
         advanced_visible = false;
-        $("#advanced-icon").attr("src", site_root + "assets/img/slickgrid/actions.gif");
+        $("#advanced-icon").removeClass('icon-chevron-up').addClass('icon-chevron-down');
     } else {
         $(".advanced-option-label").show();
         $(".advanced-option-input").show();
         $('#adv-flip-prompt').html('Hide');
         advanced_visible = true;
-        $("#advanced-icon").attr("src", site_root + "assets/img/slickgrid/actions_reverse.jpg");
+        $("#advanced-icon").removeClass('icon-chevron-down').addClass('icon-chevron-up');
     }
 }
 {/literal}
@@ -37,12 +37,15 @@ function show_advanced() {
 
 <form id="plugin_option_form" onsubmit="return false;">
 
-<p class="success" id="plugin_options_success" style="display: none;">
-    Saved!
-</p>
+<div class="alert alert-success"  id="plugin_options_success" style="display: none;">
+     <p>
+       <span class="icon-ok"></span>
+       Saved!
+     </p>
+ </div> 
 
-<div id="plugin_option_server_error" 
-    class="ui-state-error ui-corner-all" style="margin: 20px 0px; padding: 0.5em 0.7em; display: none;">
+
+<div class="alert urgent" id="plugin_option_server_error" style="display: none;">
     <p>
         <span class="ui-icon ui-icon-alert" style="float: left; margin:.3em 0.3em 0 0;"></span>
         <span id="plugin_option_server_error_message"></span>
@@ -50,9 +53,9 @@ function show_advanced() {
 </div>
 
 <div id="plugin_option_error" 
-    class="ui-state-error ui-corner-all" style="margin: 20px 0px; padding: 0.5em 0.7em; display: none;">
+    class="alert alert-error" style="margin: 20px 0px; padding: 0.5em 0.7em; display: none;">
     <p>
-        <span class="ui-icon ui-icon-alert" style="float: left; margin:.3em 0.3em 0 0;"></span>
+        <span class="icon-warning-sign"></span>
         Please complete all required fields
     </p>
 </div>
@@ -60,7 +63,13 @@ function show_advanced() {
 {if $user_is_admin}
 <!-- plugin options form elements -->
 {foreach from=$option_elements key=option_name item=option_obj}
-    {if $option_obj.advanced}
+    {if $option_obj.advanced and !isset($advanced_options)}
+        <p>
+            <a href="#" onclick="show_advanced(); return false" class="btn btn-small">
+            <i id="advanced-icon" class="icon-chevron-down"></i> <span id="adv-flip-prompt">Show</span>
+            Advanced Options
+            </a>
+        </p>
         {assign var=advanced_options value=1}
     {/if}
     {if $option_headers.$option_name}
@@ -93,11 +102,10 @@ function show_advanced() {
 {if $option_obj.advanced}class="advanced-option-input"{/if}>
 
     {if $option_obj.type eq 'text_element'}
-
         <input type="text" 
-        value="{if isset($option_obj.value)}{$option_obj.value|escape:'html'}{/if}"
-            name="plugin_options_{$option_obj.name}" id="plugin_options_{$option_obj.name}" 
-            {if ! $user_is_admin} disabled="true"{/if} />
+        value="{if isset($option_obj.value)}{$option_obj.value|filter_xss}{/if}"
+            name="plugin_options_{$option_obj.name}" id="plugin_options_{$option_obj.name}"
+            {if isset($option_obj.size)}size="{$option_obj.size}" {/if}{if ! $user_is_admin} disabled="true"{/if} />
     {/if}
     {if $option_obj.type eq 'radio_element'}
     
@@ -135,20 +143,11 @@ function show_advanced() {
 <div style="clear: both;"></div>
 {/foreach}
 
-{if $advanced_options}
-<p style="margin: 20px;">
-    <a href="#" onclick="show_advanced(); return false">
-    <img id="advanced-icon" src="{$site_root_path}assets/img/slickgrid/actions.gif" /> <span id="adv-flip-prompt">Show</span>
-    Advanced Options
-    </a>
-</p>
-{/if}
-
 {/if}
 
 <p style="margin-top: 10px;" id="plugin_option_submit_p">
 {if $user_is_admin}
-<input type="submit" value="save options" />
+<input type="submit" value="Save Settings" class="btn btn-primary"/>
 {/if}
 </p>
 

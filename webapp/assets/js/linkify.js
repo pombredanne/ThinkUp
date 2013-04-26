@@ -14,15 +14,22 @@ for (i=0; el=res.snapshotItem(i); i++) {
 			//create a span to hold the new text with links in it
 			span=document.createElement('span');
 		}
-
+                
 		//get the link without trailing dots
 		l=m[0].replace(/\.*$/, '');
+                
+                // if it's the logged in user
+                if ( typeof(logged_in_user) != 'undefined' && l == logged_in_user ) {
+                    // skip
+                    continue;
+                }
+                
 		//put in text up to the link
 		span.appendChild(document.createTextNode(txt.substring(p, m.index)));
 		//create a link and put it in the span
 		a=document.createElement('a');
 		a.appendChild(document.createTextNode(l));
-		if (-1==l.indexOf('://')) l='mailto:'+l;
+		if (-1==l.indexOf('://')) { l='mailto:'+l; }
 		a.setAttribute('href', l);
 		span.appendChild(a);
 		p=m.index+m[0].length;

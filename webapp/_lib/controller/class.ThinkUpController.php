@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/controller/class.ThinkUpController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -26,13 +26,13 @@
  * The parent class of all ThinkUp webapp controllers.
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  */
 
 abstract class ThinkUpController {
     /**
-     * @var SmartyThinkUp
+     * @var ViewManager
      */
     protected $view_mgr;
     /**
@@ -59,18 +59,31 @@ abstract class ThinkUpController {
      * @var araray
      */
     protected $header_scripts = array ();
-
+    /**
+     *
+     * @var araray
+     */
+    protected $header_css = array ();
     /**
      *
      * @var array
      */
     protected $json_data = null;
-
+    /**
+     * For testing
+     * @var str
+     */
+    public $redirect_destination;
     /**
      *
      * @var str
      */
-    protected $content_type = 'text/html';
+    protected $content_type = 'text/html; charset=UTF-8'; //default
+    /**
+    *
+    * @var boolean if true we will pass a CSRF token to the view
+    */
+    protected $view_csrf_token = false; //default
 
     /**
      * Constructs ThinkUpController
@@ -89,8 +102,7 @@ abstract class ThinkUpController {
             if ( $this->profiler_enabled) {
                 $this->start_time = microtime(true);
             }
-            $this->view_mgr = new SmartyThinkUp();
-            $this->app_session = new Session();
+            $this->view_mgr = new ViewManager();
             if ($this->isLoggedIn()) {
                 $this->addToView('logged_in_user', $this->getLoggedInUser());
             }
@@ -104,18 +116,18 @@ abstract class ThinkUpController {
             SessionCache::isKeySet('selected_instance_username')) {
                 $this->addToView('selected_instance_network', SessionCache::get('selected_instance_network'));
                 $this->addToView('selected_instance_username', SessionCache::get('selected_instance_username'));
-                $this->addToView('logo_link', 'index.php?u='. SessionCache::get('selected_instance_username')
-                .'&n='. urlencode(SessionCache::get('selected_instance_network')));
             }
         } catch (Exception $e) {
-            Utils::defineConstants();
+            Loader::definePathConstants();
+            //echo 'sending this to Smarty:'.THINKUP_WEBAPP_PATH.'data/';
             $cfg_array =  array(
-            'site_root_path'=>THINKUP_BASE_URL,
-            'source_root_path'=>THINKUP_ROOT_PATH, 
-            'debug'=>false, 
-            'app_title'=>"ThinkUp", 
+            'site_root_path'=>Utils::getSiteRootPathFromFileSystem(),
+            'source_root_path'=>THINKUP_ROOT_PATH,
+            'datadir_path'=>THINKUP_WEBAPP_PATH.'data/',
+            'debug'=>false,
+            'app_title_prefix'=>"",
             'cache_pages'=>false);
-            $this->view_mgr = new SmartyThinkUp($cfg_array);
+            $this->view_mgr = new ViewManager($cfg_array);
         }
     }
 
@@ -154,9 +166,15 @@ abstract class ThinkUpController {
     }
 
     /**
-     * Returns cache key as a string
+     * Returns cache key as a string,
+     * Preface every key with .ht to make resulting file "forbidden" by request thanks to Apache's default rule
+     * <FilesMatch "^\.([Hh][Tt])">
+     *    Order allow,deny
+     *    Deny from all
+     *    Satisfy All
+     * </FilesMatch>
      *
-     * Set to public for the sake of tests.
+     * Set to public for the sake of tests only.
      * @return str cache key
      */
     public function getCacheKeyString() {
@@ -168,7 +186,7 @@ abstract class ThinkUpController {
         foreach ($keys as $key) {
             array_push($view_cache_key, $_GET[$key]);
         }
-        return $this->view_template.self::KEY_SEPARATOR.(implode($view_cache_key, self::KEY_SEPARATOR));
+        return '.ht'.$this->view_template.self::KEY_SEPARATOR.(implode($view_cache_key, self::KEY_SEPARATOR));
     }
 
     /**
@@ -178,9 +196,20 @@ abstract class ThinkUpController {
      */
     protected function generateView() {
         // add header javascript if defined
-        if( count($this->header_scripts) > 0) {
+        if ( count($this->header_scripts) > 0) {
             $this->addToView('header_scripts', $this->header_scripts);
         }
+        // add header CSS if defined
+        if ( count($this->header_css) > 0) {
+            $this->addToView('header_css', $this->header_css);
+        }
+        // add CSRF token if enabled and defined
+        if ($this->view_csrf_token) {
+            $csrf_token = Session::getCSRFToken();
+            if (isset($csrf_token)) { $this->addToView('csrf_token', $csrf_token); }
+        }
+
+        $this->sendHeader();
         if (isset($this->view_template)) {
             if ($this->view_mgr->isViewCached()) {
                 $cache_key = $this->getCacheKeyString();
@@ -212,7 +241,7 @@ abstract class ThinkUpController {
                     return $this->view_mgr->fetch($this->view_template);
                 }
             }
-        } else if(isset($this->json_data) ) {
+        } else if (isset($this->json_data) ) {
             $this->setContentType('application/json');
             if ($this->view_mgr->isViewCached()) {
                 if ($this->view_mgr->is_cached('json.tpl', $this->getCacheKeyString())) {
@@ -257,6 +286,33 @@ abstract class ThinkUpController {
     }
 
     /**
+     * Send Content-Type header
+     */
+    protected function sendHeader() {
+        if ( !headers_sent() ) { // suppress 'headers already sent' error while testing
+            header('Content-Type: ' . $this->content_type, true);
+        }
+    }
+
+    /**
+     * Send Location header
+     * @param str $destination
+     * @return bool Whether or not redirect header was sent
+     */
+    protected function redirect($destination=null) {
+        if (!isset($destination)) {
+            $destination = Utils::getSiteRootPathFromFileSystem();
+        }
+        $this->redirect_destination = $destination; //for validation
+        if ( !headers_sent() ) {
+            header('Location: '.$destination);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Sets the view template filename
      *
      * @param str $tpl_filename
@@ -284,10 +340,10 @@ abstract class ThinkUpController {
      * @param string Content Type
      */
     protected function setContentType($content_type) {
-        $this->content_type = $content_type;
-        // if is to suppress 'headers already sent' error while testing, etc.
-        if( ! headers_sent() ) {
-            header('Content-Type: ' . $this->content_type, true);
+        if ($content_type != 'image/png') {
+            $this->content_type = $content_type.'; charset=UTF-8';
+        } else {
+            $this->content_type = $content_type;
         }
     }
 
@@ -307,6 +363,22 @@ abstract class ThinkUpController {
      */
     public function addHeaderJavaScript($script) {
         array_push($this->header_scripts, $script);
+    }
+    /**
+     * Add CSS to header
+     *
+     * @param str CSS path
+     */
+    public function addHeaderCSS($css) {
+        array_push($this->header_css, $css);
+    }
+    /**
+     * get CSS scripts
+     *
+     * @return array List of CSS files
+     */
+    public function getHeaderCSS() {
+        return $this->header_css;
     }
 
     /**
@@ -329,11 +401,10 @@ abstract class ThinkUpController {
     public function go() {
         try {
             $this->initalizeApp();
-
             // are we in need of a database migration?
             $classname = get_class($this);
             if ($classname != 'InstallerController' && $classname != 'BackupController' &&
-            UpgradeController::isUpgrading( $this->isAdmin(), $classname) ) {
+            UpgradeDatabaseController::isUpgrading( $this->isAdmin(), $classname) ) {
                 $this->setViewTemplate('install.upgradeneeded.tpl');
                 $this->disableCaching();
                 $option_dao = DAOFactory::getDAO('OptionDAO');
@@ -357,29 +428,56 @@ abstract class ThinkUpController {
                     return $results;
                 }
             }
-        } catch (Exception $e) {
-            //Explicitly set TZ (before we have user's choice) to avoid date() warning about using system settings
-            date_default_timezone_set('America/Los_Angeles');
-            $content_type = $this->content_type;
-            if (strpos($content_type, ';') !== FALSE) {
-                $content_type = array_shift(explode(';', $content_type));
-            }
-            switch ($content_type) {
-                case 'application/json':
-                    $this->setViewTemplate('500.json.tpl');
-                    break;
-                case 'text/plain':
-                    $this->setViewTemplate('500.txt.tpl');
-                    break;
-                default:
-                    $this->setViewTemplate('500.tpl');
-            }
+        } catch (ControllerAuthException $e) {
+            Utils::setDefaultTimezonePHPini();
+            $this->setErrorTemplateState();
             $this->addToView('error_type', get_class($e));
-            $this->addErrorMessage($e->getMessage());
+            $config = Config::getInstance();
+            $message = 'You must <a href="'.$config->getValue('site_root_path').
+            'session/login.php">log in</a> to do this.';
+            $this->addErrorMessage($message, null, true);
+            return $this->generateView();
+        } catch (ConfigurationException $e) {
+            $this->setErrorTemplateState();
+            $this->addToView('error_type', get_class($e));
+            $message = 'ThinkUp\'s configuration file does not exist! Try <a href="'.
+            Utils::getSiteRootPathFromFileSystem().'install/">installing ThinkUp.</a>';
+            $this->addErrorMessage($message, null, true);
+            return $this->generateView();
+        } catch (Exception $e) {
+            Utils::setDefaultTimezonePHPini();
+            $this->setErrorTemplateState();
+            $this->addToView('error_type', get_class($e));
+            $disable_xss = false;
+            // if we are an installer exception, don't filter XSS, we have markup, and we trust this content
+            if (get_class($e) == 'InstallerException') {
+                $disable_xss = true;
+            }
+            $this->addErrorMessage($e->getMessage(), null, $disable_xss);
             return $this->generateView();
         }
     }
 
+    /**
+     * set proper error message and template
+     */
+    private function setErrorTemplateState() {
+        $content_type = $this->content_type;
+        if (strpos($content_type, ';') !== false) {
+            $exploded = explode(';', $content_type);
+            $content_type = array_shift($exploded);
+        }
+        switch ($content_type) {
+            case 'application/json':
+                $this->setViewTemplate('500.json.tpl');
+                break;
+            case 'text/plain':
+                $this->setViewTemplate('500.txt.tpl');
+                break;
+            default:
+                $this->setViewTemplate('500.tpl');
+        }
+    }
     /**
      * Initalize app
      * Load config file and required plugins
@@ -395,23 +493,24 @@ abstract class ThinkUpController {
             }
             if ($config->getValue('debug')) {
                 ini_set("display_errors", 1);
-                ini_set("error_reporting", E_ALL);
+                ini_set("error_reporting", E_STRICT);
             }
-            if($classname != "BackupController") {
+            if ($classname != "BackupController") {
                 //Init plugins
-                $pdao = DAOFactory::getDAO('PluginDAO');
-                $active_plugins = $pdao->getActivePlugins();
-                Utils::defineConstants();
-                foreach ($active_plugins as $ap) {
+                $plugin_dao = DAOFactory::getDAO('PluginDAO');
+                $active_plugins = $plugin_dao->getActivePlugins();
+                Loader::definePathConstants();
+                foreach ($active_plugins as $active_plugin) {
                     //add plugin's model and controller folders as Loader paths here
-                    Loader::addPath(THINKUP_WEBAPP_PATH.'plugins/'.$ap->folder_name."/model/");
-                    Loader::addPath(THINKUP_WEBAPP_PATH.'plugins/'.$ap->folder_name.
+                    Loader::addPath(THINKUP_WEBAPP_PATH.'plugins/'.$active_plugin->folder_name."/model/");
+                    Loader::addPath(THINKUP_WEBAPP_PATH.'plugins/'.$active_plugin->folder_name.
                     "/controller/");
                     //require the main plugin registration file here
                     if ( file_exists(
-                    THINKUP_WEBAPP_PATH.'plugins/'.$ap->folder_name."/controller/".$ap->folder_name.".php")) {
-                        require_once THINKUP_WEBAPP_PATH.'plugins/'.$ap->folder_name."/controller/".$ap->folder_name.
-                        ".php";
+                    THINKUP_WEBAPP_PATH.'plugins/'.$active_plugin->folder_name."/controller/".
+                    $active_plugin->folder_name.".php")) {
+                        require_once THINKUP_WEBAPP_PATH.'plugins/'.$active_plugin->folder_name."/controller/".
+                        $active_plugin->folder_name.".php";
                     }
                 }
             }
@@ -420,7 +519,7 @@ abstract class ThinkUpController {
 
     /**
      * Provided for tests only, to assert that proper view values have been set. (Debug must be equal to true.)
-     * @return SmartyThinkUp
+     * @return ViewManager
      */
     public function getViewManager() {
         return $this->view_mgr;
@@ -456,29 +555,75 @@ abstract class ThinkUpController {
     }
 
     /**
-     * Add error message to view
+     * Add error message to view.
+     * Include field if the message goes on a specific place on the page; otherwise leave it null for the message
+     * to be page-level.
      * @param str $msg
+     * @param str $field Defaults to null for page-level messages.
+     * @param bool $disable_xss Disable HTML encoding tags, defaults to false
      */
-    public function addErrorMessage($msg) {
+    public function addErrorMessage($msg, $field=null, $disable_xss=false) {
         $this->disableCaching();
-        $this->addToView('errormsg', $msg );
+        $this->view_mgr->addErrorMessage($msg, $field, $disable_xss);
     }
 
     /**
      * Add success message to view
+     * Include field if the message goes on a specific place on the page; otherwise leave it null for the message
+     * to be page-level.
      * @param str $msg
+     * @param str $field Defaults to null for page-level messages.
+     * @param bool $disable_xss Disable HTML encoding tags, defaults to false
      */
-    public function addSuccessMessage($msg) {
+    public function addSuccessMessage($msg, $field=null, $disable_xss=false) {
         $this->disableCaching();
-        $this->addToView('successmsg', $msg );
+        $this->view_mgr->addSuccessMessage($msg, $field, $disable_xss);
     }
 
     /**
      * Add informational message to view
+     * Include field if the message goes on a specific place on the page; otherwise leave it null for the message
+     * to be page-level.
      * @param str $msg
+     * @param str $field Defaults to null for page-level messages.
+     * @param bool $disable_xss Disable HTML encoding tags, defaults to false
      */
-    public function addInfoMessage($msg) {
+    public function addInfoMessage($msg, $field=null, $disable_xss=false) {
         $this->disableCaching();
-        $this->addToView('infomsg', $msg );
+        $this->view_mgr->addInfoMessage($msg, $field, $disable_xss);
+    }
+
+    /**
+     * Will enable a CSRF token in the view
+     */
+    public function enableCSRFToken() {
+        $this->view_csrf_token = true;
+    }
+
+    /**
+     * Get the view CSRF token enabled status
+     */
+    public function isEnableCSRFToken() {
+        return $this->view_csrf_token;
+    }
+
+    /**
+     * Validate the CSRF token passed in the request data.
+     * @throws invalid InvalidCSRFTokenException
+     * @return bool True if $_POST['csrf_token'] or $_GET['csrf_token'] is valid
+     */
+    public function validateCSRFToken() {
+        $token = 'no token passed';
+        if (isset($_POST['csrf_token'])) {
+            $token = $_POST['csrf_token'];
+        } else if (isset($_GET['csrf_token'])) {
+            $token = $_GET['csrf_token'];
+        }
+        $session_token = Session::getCSRFToken();
+        if ($session_token && $session_token == $token) {
+            return true;
+        } else {
+            throw new InvalidCSRFTokenException($token);
+        }
     }
 }

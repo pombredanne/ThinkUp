@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/classes/class.TestFauxHookableApp.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -21,19 +21,19 @@
  * <http://www.gnu.org/licenses/>.
  *
  *
- * Faux TestPluginHook class for TestOfPluginHook test
+ * Faux TestPluginRegistrar class for TestOfPluginRegistrar test
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
-class TestFauxHookableApp extends PluginHook {
+class TestFauxHookableApp extends PluginRegistrar {
     /**
      * For testing purposes
      */
     public function performAppFunction() {
-        $this->emitObjectMethod('performAppFunction');
+        $this->emitObjectFunction('performAppFunction');
     }
 
     /**
@@ -41,6 +41,6 @@ class TestFauxHookableApp extends PluginHook {
      * @param str $object_name Object name
      */
     public function registerPerformAppFunction($object_name) {
-        $this->registerObjectMethod('performAppFunction', $object_name, 'performAppFunction');
+        $this->registerObjectFunction('performAppFunction', $object_name, 'performAppFunction');
     }
 }

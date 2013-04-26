@@ -1,170 +1,242 @@
-{include file="_header.tpl"}
-{include file="_statusbar.tpl"}
+{include file="_header.tpl" enable_bootstrap=$enable_bootstrap}
+{include file="_statusbar.tpl" enable_bootstrap=$enable_bootstrap}
 
 <div class="container_24">
   <div class="clearfix">
-    
     <!-- begin left nav -->
-    <div class="grid_4 alpha omega" style="background-color:#e6e6e6">
-      <div id="nav-sidebar">
-        <ul id="top-level-sidenav">
-          <li style="list-style: none">
+    <div class="grid_4 alpha omega">
         {if $instance}
-        <ul>
-          <li>
-            <ul class="side-subnav">
-              <li{if $smarty.get.v eq ''} class="currentview"{/if}><br />
-                <a href="{$site_root_path}index.php?u={$instance->network_username|urlencode}&n={$instance->network}">Dashboard</a>
+      <div id="nav">
+        <ul id="top-level-sidenav">
+        {/if}
+        {if $instance}
+              <li{if $smarty.get.v eq ''} class="selected"{/if}>
+                <a href="{$site_root_path}dashboard.php?u={$instance->network_username|urlencode}&n={$instance->network|urlencode}">Dashboard</a>
               </li>
         {/if}
         {if $sidebar_menu}
           {foreach from=$sidebar_menu key=smkey item=sidebar_menu_item name=smenuloop}
-            {if $sidebar_menu_item->header}
-            </ul>
-          </li>
-        <li>{$sidebar_menu_item->header}
-        <ul class="side-subnav">
+          {if !$sidebar_menu_item->parent}
+                <li{if $smarty.get.v eq $smkey OR $parent eq $smkey} class="selected"{/if}>
+                {* TODO: Remove this logic from the view *}
+                {if $parent eq $smkey}{assign var="parent_name" value=$sidebar_menu_item->name}{/if}
+                <a href="{$site_root_path}dashboard.php?v={$smkey}&u={$instance->network_username|urlencode}&n={$instance->network|urlencode}">{$sidebar_menu_item->name}</a></li>
+             {/if}
+            {/foreach}
+
         {/if}
-        <li{if $smarty.get.v eq $smkey} class="currentview"{/if}><a href="{$site_root_path}index.php?v={$smkey}&u={$instance->network_username|urlencode}&n={$instance->network}">{$sidebar_menu_item->name}</a></li>
-        {/foreach}
-        </ul>
-        </li>
-        </ul>
-        {/if}
-        </li>
+        {if $instance}
         </ul>
       </div>
+        {/if}
     </div>
-        
+
     <div class="thinkup-canvas round-all grid_20 alpha omega prepend_20 append_20" style="min-height:340px">
-      <div class="prefix_1">
-          
+      <div class="prefix_1 suffix_1">
+
         {include file="_usermessage.tpl"}
-        
+        {if $show_update_now_button eq true}
+        <br>
+        <a href="{$site_root_path}crawler/updatenow.php{if $developer_log}?log=full{/if}" class="linkbutton emphasized">Capture Data Now</a>
+        {/if}
+
         {if $instance}
-            <!--begin public user dashboard-->
-            {if $user_details}
-            <div class="suffix_1 grid_18 alpha omega">
-              <div class="clearfix dashboard-header round-all">
+          {* begin public user dashboard *}
+          {if $user_details}
+            <div class="grid_18 alpha omega">
+              <div class="clearfix alert stats round-all" id="">
                 <div class="grid_2 alpha">
                   <div class="avatar-container">
-                    <img src="{$user_details->avatar}" class="avatar2"/><img src="{$site_root_path}plugins/{$user_details->network|get_plugin_path}/assets/img/favicon.ico" class="service-icon2"/>
+                    <img src="{$user_details->avatar}" class="avatar2" width="48" height="48"/>
+                    <img src="{$site_root_path}plugins/{$user_details->network|get_plugin_path}/assets/img/favicon.png" class="service-icon2"/>
                   </div>
                 </div>
                 <div class="grid_15 omega">
                   <span class="tweet">{$user_details->username} <span style="color:#ccc">{$user_details->network|capitalize}</span></span><br />
                   <div class="small">
-                    Recently posting about {$instance->posts_per_day|round} times a day{if $latest_clients_usage}, mostly using {foreach from=$latest_clients_usage key=name item=num_posts name=foo}{$name}{if !$smarty.foreach.foo.last} and {/if}{/foreach}{/if} 
-                    (<a href="{$site_root_path}post/export.php?u={$instance->network_username}&n={$instance->network}">CSV</a>)
+                    {if $instance->crawler_last_run eq 'realtime'}<span style="color:green;">&#9679;</span> Updated in realtime{else}Updated {$instance->crawler_last_run|relative_datetime} ago{/if}{if !$instance->is_active} (paused){/if}
                   </div>
                 </div>
               </div>
             </div>
+
+          {if $data_template}
+            {include file=$data_template}
+          {else} {* else if no $data_template *}
+
+              {if $instance->network eq 'foursquare'}
+               {if $checkins_map|count_characters neq 0}
+                   <div class="section">
+                       <h2>This Week's Checkins Map</h2>
+                       <div class="clearfix article">
+                       <center><img src="{$checkins_map}"></center>
+                       </div>
+                   </div>
+               {/if}
+
+               {if $checkins_per_hour|count_characters neq 0}
+                    {include file="_dashboard.checkinsperhour.tpl"}
+               {/if}
+
+               {if $checkins_by_type_last_week|count_characters neq 0 && $checkins_by_type|count_characters neq 0}
+                   <div class="section" style="float : left; clear : none; width : 345px;">
+                       {include file="_dashboard.checkinplacetypeslastweek.tpl"}
+                   </div>
+                   <div class="section" style="float : left; clear : none;margin-left : 16px; width : 345px;">
+                       {include file="_dashboard.checkinplacetypesalltime.tpl"}
+                   </div>
+               {/if}
+             {/if}
+
+            {if $hot_posts_data && $instance->network neq 'foursquare'}
+                <div class="section">
+                {include file="_dashboard.responserates.tpl"}
+                </div>
             {/if}
 
-            {if $data_template}
-         
-              {include file=$data_template}
-              <div class="float-l">
-                {if $next_page}
-                  <a href="{$site_root_path}index.php?{if $smarty.get.v}v={$smarty.get.v}&{/if}{if $smarty.get.u}u={$smarty.get.u}&{/if}{if $smarty.get.n}n={$smarty.get.n}&{/if}page={$next_page}" id="next_page">&#60; Older Posts</a>
-                {/if}
-                {if $last_page}
-                  | <a href="{$site_root_path}index.php?{if $smarty.get.v}v={$smarty.get.v}&{/if}{if $smarty.get.u}u={$smarty.get.u}&{/if}{if $smarty.get.n}n={$smarty.get.n}&{/if}page={$last_page}" id="last_page">Newer Posts  &#62;</a>
-                {/if}
-              </div>
-        
-            {else} <!-- else if $data_template -->
-    
-              {if $recent_posts}
-                {foreach from=$recent_posts key=tid item=t name=foo}
-                  {include file="_post.lite.tpl" t=$t headings="NONE"}
+            {if $yearly_popular && $instance->network eq 'twitter'}
+                <div class="section">
+                <h2>Your Most Popular Tweets of {$yearly_popular_year}</h2>
+                {foreach from=$yearly_popular key=tid item=t name=foo}
+                    {include file="_post.counts_no_author.tpl" post=$t headings="NONE"}
                 {/foreach}
-              {/if}
-
-              {if $follower_count_history_by_day.history && $follower_count_history_by_week.history}
-              <div class="clearfix">
-                <div class="grid_9 alpha">
-                  <h2>Follower Count By Day{if !$follower_count_history_by_day.history OR $follower_count_history_by_day.history|@count < 2}<br /><i>Not enough data to display chart</i>{else} {if $follower_count_history_by_day.trend}({if $follower_count_history_by_day.trend > 0}<span style="color:green">+{else}<span style="color:red">{/if}{$follower_count_history_by_day.trend|number_format}</span>/day){/if}</h2>
-                  <img width="350" height="200" src="http://chart.apis.google.com/chart?chs=350x200&chxt=x,y&chxl=0:|{foreach from=$follower_count_history_by_day.history key=tid item=t name=foo}{$tid}{if $t eq "no data"} (no data){/if}|{/foreach}1:|{foreach from=$follower_count_history_by_day.y_axis key=tid item=t name=foo}{$t|number_format}{if !$smarty.foreach.foo.last}|{/if}{/foreach}&cht=ls&chco=007733&chd=t:{foreach from=$follower_count_history_by_day.percentages key=tid item=t name=foo}{$t}{if !$smarty.foreach.foo.last},{/if}{/foreach}&chm=B,cccccc,0,0,0" />{/if}
+                <div class="clearfix view-all">
+                    <a href="{$site_root_path}dashboard.php?v=years_most_popular&u={$instance->network_username}&n={$instance->network}&y={$yearly_popular_year}">More...</a>
                 </div>
-                <div class="grid_9 omega">
-                  <h2>Follower Count By Week{if !$follower_count_history_by_week.history OR $follower_count_history_by_week.history|@count < 2}<br /><i>Not enough data to display chart</i><br clear="all"/>{else} {if $follower_count_history_by_week.trend != 0}({if $follower_count_history_by_week.trend > 0}<span style="color:green">+{else}<span style="color:red">{/if}{$follower_count_history_by_week.trend|number_format}</span>/week){/if}</h2>
-                  <img width="350" height="200" src="http://chart.apis.google.com/chart?chs=350x200&chxt=x,y&chxl=0:|{foreach from=$follower_count_history_by_week.history key=tid item=t name=foo}{if $t eq "no data"}no data{else}{$tid}{/if}|{/foreach}1:|{foreach from=$follower_count_history_by_week.y_axis key=tid item=t name=foo}{$t|number_format}{if !$smarty.foreach.foo.last}|{/if}{/foreach}&cht=ls&chco=007733&chd=t:{foreach from=$follower_count_history_by_week.percentages key=tid item=t name=foo}{$t}{if !$smarty.foreach.foo.last},{/if}{/foreach}&chm=B,cccccc,0,0,0" />
                 </div>
-              </div>
-              {/if}
-
-              {if $follower_count_history_by_week.milestone}
-                <div class="small gray">
-                  Next milestone: <span style="background-color:#FFFF80;color:black">{$follower_count_history_by_week.milestone.will_take} weeks</span> till you reach <span style="background-color:#FFFF80;color:black">{$follower_count_history_by_week.milestone.next_milestone|number_format} followers</span> at this rate. <a href="{$site_root_path}index.php?v=followers-history&u={$instance->network_username}&n={$instance->network}">More...</a>
-                </div>
-              {/if}
-
-            {/if} <!-- end if $data_template -->
+            {/if}
 
             {if $least_likely_followers}
-              <div class="clearfix">
-                <h2 >Most Discerning Followers</h2>
-                <div class="clearfix">
+              <div class="clearfix section">
+                <h2>This Week's Most Discerning Followers</h2>
+                <div class="clearfix article" style="padding-top : 0px;">
                 {foreach from=$least_likely_followers key=uid item=u name=foo}
-                  <div class="avatar-container" style="float:left;margin:7px;">  
-                    <a href="http://twitter.com/{$u.user_name}" title="{$u.user_name}"><img src="{$u.avatar}" class="avatar2"/><img src="{$site_root_path}plugins/{$u.network}/assets/img/favicon.ico" class="service-icon2"/></a> 
+                  {if !$smarty.foreach.foo.last}
+                  <div class="avatar-container" style="float:left;margin:7px;">
+                    <a href="https://twitter.com/intent/user?user_id={$u.user_id}" title="{$u.user_name} has {$u.follower_count|number_format} followers and {$u.friend_count|number_format} friends"><img src="{$u.avatar}" class="avatar2" width="48" height="48"/><img src="{$site_root_path}plugins/{$u.network}/assets/img/favicon.png" class="service-icon2"/></a>
                   </div>
+                  {/if}
                 {/foreach}
-                <div class="clearfix small prepend">
-                <br ><br >&nbsp;<a href="{$site_root_path}index.php?v=followers-leastlikely&u={$instance->network_username}&n={$instance->network}">More...</a></div>
+                <br /><br /><br />
+                </div>
+                <div class="clearfix view-all">
+                    <a href="{$site_root_path}dashboard.php?v=followers-leastlikely&u={$instance->network_username}&n={$instance->network}">More...</a>
                 </div>
                 </div>
             {/if}
 
-            {if $most_replied_to_1wk}
-              <div class="clearfix">
-                <h2 >This Week's Most Replied-To Posts</h2>
+            {if $click_stats_data}
+                <div class="section">
+                {include file="_dashboard.clickthroughrates.tpl"}
+                </div>
+            {/if}
+
+            {if $instance->network eq "foursquare"}
+               <style type="text/css">
+                {literal}
+                .map-image-container { width: 130px; height: 130px; padding-bottom : 30px; }
+                img.map-image2 {float:left;margin:6px 0 0 0;width:150px;height:150px;}
+                img.place-icon2 {position: relative;width: 32px;height: 32px;top: -146px;left: 5px;}
+                {/literal}
+                </style>
+            {/if}
+
+            {if $most_replied_to_1wk && $instance->network neq 'foursquare'}
+              <div class="section">
+                <h2>This Week's Most {if $instance->network eq 'google+'}Discussed{else}Replied-To{/if} Posts</h2>
                 {foreach from=$most_replied_to_1wk key=tid item=t name=foo}
-                  {include file="_post.lite.tpl" t=$t headings="NONE"}
+                    {if $instance->network eq "twitter"}
+                        {include file="_post.counts_no_author.tpl" post=$t headings="NONE"}
+                    {elseif $instance->network eq 'foursquare'}
+                        {include file="_post.checkin.tpl" post=$t}
+                    {else}
+                        {include file="_post.counts_no_author.tpl" post=$t headings="NONE" show_favorites_instead_of_retweets=true}
+                    {/if}
                 {/foreach}
               </div>
             {/if}
 
-        {if $instance->network eq 'twitter' }
-        <div class="clearfix">
-           <div class="public_user_stats">
-            <div class="grid_8 alpha">
-            <h2>Post Types</span></h2>
-            <div class="clearfix small prepend">
-                {$instance->percentage_replies|round}% posts are replies<br>
-                {$instance->percentage_links|round}% posts contain links<br>
-             </div>
-                <img width="250" height="175" src="http://chart.apis.google.com/chart?chxt=x,y&cht=bhg&chd=t:{$instance->percentage_replies|round},{$instance->percentage_links|round}&chco=6184B5&chls=2.0&chs=250x175&chxl=0:|20%|60%|100%|1:|Broadcaster|Conversationalist&chxp=0,20,60,100&chbh=50" />
-             </div>
-             <div class="grid_8 omega">
-                  <h2>Client Usage <span class="detail">(all posts)</span></h2>
-                  <img width="400" height="200" src="http://chart.apis.google.com/chart?cht=p&chd=t:{foreach from=$all_time_clients_usage key=name item=num_posts name=foo}{if $num_posts>0}{math equation="round(x/y*100,2)" x=$num_posts y=$all_time_clients_usage|@array_sum}{else}0{/if}{if !$smarty.foreach.foo.last},{/if}{/foreach}&chs=400x200&chl={foreach from=$all_time_clients_usage key=name item=num_posts name=foo}{$name}+({$num_posts}){if !$smarty.foreach.foo.last}|{/if}{/foreach}&chco=6184B5,E6E6E6"><br /><br />
-             </div>
-           </div>
-        </div>
-        {/if}
+            {if $most_faved_1wk}
+              <div class="section">
+                <h2>This Week's Most {if $instance->network eq 'google+'}+1ed{else}Liked{/if} Posts</h2>
+                {foreach from=$most_faved_1wk key=tid item=t name=foo}
+                  {include file="_post.counts_no_author.tpl" post=$t headings="NONE" show_favorites_instead_of_retweets=true}
+                {/foreach}
+              </div>
+            {/if}
+
+            {if $follower_count_history_by_day.history && $follower_count_history_by_week.history}
+                <div class="section" style="float : left; clear : none; width : 345px;">
+                    {include file="_dashboard.followercountbyday.tpl"}
+                </div>
+                <div class="section" style="float : left; clear : none;margin-left : 16px; width : 345px;">
+                    {include file="_dashboard.followercountbyweek.tpl"}
+                </div>
+            {/if}
 
             {if $most_retweeted_1wk}
-              <div class="clearfix">
-                <h2>This Week's Most Retweeted</h2>
+              <div class="clearfix section">
+                <h2>This Week's Most {if $instance->network eq 'google+'}Reshared{else}Retweeted{/if} Posts</h2>
                 {foreach from=$most_retweeted_1wk key=tid item=t name=foo}
-                  {include file="_post.lite.tpl" t=$t headings="NONE"}
+                  {include file="_post.counts_no_author.tpl" post=$t show_favorites_instead_of_retweets=false}
                 {/foreach}
               </div>
             {/if}
 
-          {/if} 
-          
+            {if $instance->network eq 'twitter' }
+                <div class="section" style="float : left; clear : none; width : 345px;">
+                  {include file="_dashboard.posttypes.tpl"}
+                </div>
+                <div class="section" style="float : left; clear : none;margin-left : 10px; width : 345px;">
+                    {include file="_dashboard.clientusage.tpl"}
+                </div>
+            {/if}
+
+            {if $posts_flashback|@count > 0 }
+            <div class="section">
+                <h2>Time Machine: On This Day In Years Past</h2>
+                {if $instance->network eq 'foursquare'}
+                    {foreach from=$posts_flashback item=post name=foo}
+                        {include file="_post.checkin.tpl" }
+                    {/foreach}
+                {else}
+                    {foreach from=$posts_flashback key=tid item=post name=foo}
+                      {include file="_post.counts_no_author.tpl" post=$post show_favorites_instead_of_retweets=false}
+                    {/foreach}
+                {/if}
+            </div>
+           {/if} 
+
+          {/if} {* end if $data_template *}
+         {/if}
         {/if}
+
+        {if !$instance}
+          <div style="width:60%;text-align:center;">
+          {if $add_user_buttons}
+          <br ><br>
+            {foreach from=$add_user_buttons key=smkey item=button name=smenuloop}
+                <div style="float:right;padding:5px;"><a href="{$site_root_path}account/?p={$button}" class="linkbutton emphasized">Add a {if $button eq 'googleplus'}Google+{else}{$button|ucwords}{/if} Account &rarr;</a></div>
+                <div style="clear:both;">&nbsp;</div>
+             {/foreach}
+          {/if}
+          {if $logged_in_user}
+          <div style="float:right;padding:5px;"><a href="{$site_root_path}account/" class="linkbutton emphasized">Adjust Your Settings</a></div>
+          {else}
+          <div style="float:right;padding:5px;"><a href="{$site_root_path}session/login.php" class="linkbutton emphasized">Log In</a></div>
+          {/if}
+          </div>
+        {/if}
+
       </div> <!-- /.prefix_1 -->
     </div> <!-- /.thinkup-canvas -->
-    
+
   </div> <!-- /.clearfix -->
 </div> <!-- /.container_24 -->
 
-  <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script>
-<script type="text/javascript" src="{$site_root_path}assets/js/linkify.js"></script>
-  
-{include file="_footer.tpl"}
+
+{if $smarty.get.v eq "insights"}
+    {include file="_footer.tpl" enable_bootstrap=1}
+{else}
+    {include file="_footer.tpl"}
+{/if}

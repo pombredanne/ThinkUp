@@ -5,14 +5,8 @@
   <title>{if $controller_title}{$controller_title} | {/if}{$app_title}</title>
   <link rel="shortcut icon" type="image/x-icon" href="{$site_root_path}assets/img/favicon.png">
   <link type="text/css" rel="stylesheet" href="{$site_root_path}assets/css/base.css">
-  <link type="text/css" rel="stylesheet" href="{$site_root_path}assets/css/positioning.css">
   <link type="text/css" rel="stylesheet" href="{$site_root_path}assets/css/style.css">
-  <link type="text/css" rel="stylesheet" href="{$site_root_path}assets/css/jquery-ui-1.7.1.custom.css">
 
-  <!-- jquery -->
-  <link type="text/css" rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css">
-  <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script>
-  <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>
   <script type="text/javascript">var site_root_path = '{$site_root_path}';</script>
   {foreach from=$header_scripts item=script}
     <script type="text/javascript" src="{$site_root_path}{$script}"></script>
@@ -31,7 +25,7 @@
 <link rel="stylesheet" type="text/css" href="{$site_root_path}plugins/geoencoder/assets/css/maps.css" />
 </head>
 
-<body {if $errormsg}>
+<body {if $error_msg}>
         {include file="_usermessage.tpl"}
       {else}
        onload="initializeMap()" onunload="GUnload()">
@@ -40,10 +34,16 @@
         <div id="map"></div>
       </div>
       <div id="userpanel">
-        <h3>All Post Locations</h3>
-        <div class="columns" id="markerlist0"></div>
-        <div class="columns" id="markerlist1"></div>
-        <div class="columns" id="markerlist2"></div>
+        <table class="table table-striped table-bordered table-condensed">
+            <tbody>
+                <tr>
+                    <td id="markerlist0"></td>
+                    <td id="markerlist1"></td>
+                    <td id="markerlist2"></td>
+                </tr>
+            </tbody>
+        </table>
+
       </div>
       {/if}
      </div>

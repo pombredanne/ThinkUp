@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfTestController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Guillaume Boudreau, Mark Wilkie
+ * Copyright (c) 2009-2013 Gina Trapani, Guillaume Boudreau, Mark Wilkie
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -24,12 +24,12 @@
  *
  * TestController isn't a real ThinkUp controller, this is just a template for all Controller tests.
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Guillaume Boudreau, Mark Wilkie
+ * @copyright 2009-2013 Gina Trapani, Guillaume Boudreau, Mark Wilkie
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 
 class TestOfTestController extends ThinkUpUnitTestCase {
 
@@ -58,16 +58,18 @@ class TestOfTestController extends ThinkUpUnitTestCase {
      */
     public function testControl() {
         $config = Config::getInstance();
+        $config->setValue("app_title_prefix", "Angelina Jolie's ");
         $controller = new TestController(true);
         $results = $controller->go();
 
-        $this->assertEqual('text/html', $controller->getContentType());
+        $this->assertEqual('text/html; charset=UTF-8', $controller->getContentType());
         //test if view variables were set correctly
         $v_mgr = $controller->getViewManager();
         $this->assertEqual($v_mgr->getTemplateDataItem('test'), 'Testing, testing, 123');
-        $this->assertEqual($v_mgr->getTemplateDataItem('app_title'), 'ThinkUp');
+        $this->assertEqual($v_mgr->getTemplateDataItem('app_title'), "Angelina Jolie's ThinkUp");
+        $this->debug($results);
         $this->assertEqual($results, '<a href="'.$config->getValue('site_root_path').
-        '">ThinkUp</a>: Testing, testing, 123 | Not logged in', "controller output");
+        '">Angelina Jolie\'s ThinkUp</a>: Testing, testing, 123 | Not logged in', "controller output");
     }
 
     /**
@@ -78,10 +80,11 @@ class TestOfTestController extends ThinkUpUnitTestCase {
     public function testCacheKeyNoRequestParams() {
         $config = Config::getInstance();
         $config->setValue('cache_pages', true);
+        $this->debug($config->getValue('datadir_path'));
         $controller = new TestController(true);
         $results = $controller->go();
 
-        $this->assertEqual($controller->getCacheKeyString(), 'testme.tpl-');
+        $this->assertEqual($controller->getCacheKeyString(), '.httestme.tpl-');
     }
 
     /**
@@ -97,8 +100,8 @@ class TestOfTestController extends ThinkUpUnitTestCase {
         $this->assertIsA($obj, 'stdClass');
         $this->assertEqual($obj->aname, 'a value');
         $this->assertIsA($obj->alist, 'Array');
-        $this->assertEqual($obj->alink, 'http://thinkupapp.com');
-        $this->assertEqual( $controller->getContentType(),'application/json');
+        $this->assertEqual($obj->alink, 'http://thinkup.com');
+        $this->assertEqual( $controller->getContentType(),'application/json; charset=UTF-8');
     }
 
     /**
@@ -125,7 +128,33 @@ class TestOfTestController extends ThinkUpUnitTestCase {
         $_GET['text'] = true;
 
         $results = $controller->go();
-        $this->assertEqual( $controller->getContentType(),'text/plain');
+        $this->assertEqual( $controller->getContentType(),'text/plain; charset=UTF-8');
+    }
+
+    /**
+     * Test setting content type header
+     */
+    public function testAddImageContentTypeHeader() {
+        $config = Config::getInstance();
+        $controller = new TestController(true);
+        $_GET['png'] = true;
+
+        $results = $controller->go();
+        $this->assertEqual( $controller->getContentType(),'image/png');
+    }
+
+    /**
+     * Test add CSS 2 header
+     */
+    public function testAddCSS2Header() {
+        $config = Config::getInstance();
+        $controller = new TestController(true);
+        $_GET['css'] = true;
+        $results = $controller->go();
+        $this->assertEqual(count($controller->getHeaderCSS()), 1);
+        $css = $controller->getHeaderCSS();
+        $this->assertEqual($css[0], 'assets/css/bla.css');
+        $this->assertPattern('/assets\/css\/bla\.css"/', $results);
     }
 
     /**
@@ -138,7 +167,7 @@ class TestOfTestController extends ThinkUpUnitTestCase {
 
         $v_mgr = $controller->getViewManager();
         $config = Config::getInstance();
-        $this->assertEqual('Testing exception handling!', $v_mgr->getTemplateDataItem('errormsg'));
+        $this->assertEqual('Testing exception handling!', $v_mgr->getTemplateDataItem('error_msg'));
         $this->assertPattern('/<html/', $results);
 
         $_GET['json'] = true;

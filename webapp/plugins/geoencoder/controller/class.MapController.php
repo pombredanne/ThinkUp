@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/controller/class.MapController.php
  *
- * Copyright (c) 2009-2011 Ekansh Preet Singh, Mark Wilkie
+ * Copyright (c) 2009-2013 Ekansh Preet Singh, Mark Wilkie
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -26,7 +26,7 @@
  * Renders the map for a post showing the post and its replies and retweets
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  * @author Ekansh Preet Singh <ekanshpreet[at]gmail[dot]com>
  * @author Mark Wilkie <mwilkie[at]gmail[dot]com>
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
@@ -149,10 +149,11 @@ class MapController extends ThinkUpController {
                 }
                 // Split geo into latitude and longitude.
                 $geo_data = explode(',',$post['geo']);
-                $latitude = $geo_data[0];
-                $longitude = $geo_data[1];
+                if (isset($geo_data[0]) && isset($geo_data[1])) {
+                    $latitude = $geo_data[0];
+                    $longitude = $geo_data[1];
 
-                $all_locations[] = array (
+                    $all_locations[] = array (
                     'name'=>$post['location'],
                     'latitude'=>$latitude,
                     'longitude'=>$longitude,
@@ -160,7 +161,8 @@ class MapController extends ThinkUpController {
                     'retweet_count'=>$retweet_count,
                     'includes_main_post'=>$main_post_included,
                     'posts'=>$$place
-                );
+                    );
+                }
             }
             $main_post_included = 0;
             $flag = 1;

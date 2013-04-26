@@ -6,7 +6,7 @@
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -100,7 +100,7 @@ var TU_Update = function() {
 		// some time");
 		// }
 
-		controller_uri = site_root_path + 'install/upgrade.php';
+		controller_uri = site_root_path + 'install/upgrade-database.php';
 		tu_update.submitting = true;
 		$('#migrate_spinner').show();
 		var params = {
@@ -133,9 +133,6 @@ var TU_Update = function() {
 						tu_update.appendStatus("<br />");
 						tu_update.submitForm();
 					} else {
-						$('#info-parent').removeClass('ui-state-highlight');
-						$('#info-parent').removeClass('ui-corner-all');
-						$('#info-parent').addClass('success');
 						$('#migration-info').html(
 								'Success! Your ThinkUp is now up-to-date.');
 						$('#migrate_spinner').hide();

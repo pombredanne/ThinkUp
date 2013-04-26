@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/model/class.Option.php
  *
- * Copyright (c) 2009-2011 Mark Wilkie
+ * Copyright (c) 2009-2013 Mark Wilkie
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -26,7 +26,7 @@
  * A ThinkUp Option Class
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Mark Wilkie
+ * @copyright 2009-2013 Mark Wilkie
  * @author Mark Wilkie <mwilkie[at]gmail[dot]com>
  *
  */
@@ -52,17 +52,17 @@ class Option {
     var $option_value;
 
     public function __construct($args = null) {
-        if(! is_null($args)) {
-            if(isset($args['option_id'])) {
+        if (!is_null($args)) {
+            if (isset($args['option_id'])) {
                 $this->option_id = $args['option_id'];
             }
-            if(isset($args['namespace'])) {
+            if (isset($args['namespace'])) {
                 $this->namespace = $args['namespace'];
             }
-            if(isset($args['option_name'])) {
+            if (isset($args['option_name'])) {
                 $this->option_name = $args['option_name'];
             }
-            if(isset($args['option_value'])) {
+            if (isset($args['option_value'])) {
                 $this->option_value = $args['option_value'];
             }
         }

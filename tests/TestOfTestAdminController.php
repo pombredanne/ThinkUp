@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfTestAdminController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Mark Wilkie
+ * Copyright (c) 2009-2013 Gina Trapani, Mark Wilkie
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -25,13 +25,13 @@
  * TestController isn't a real ThinkUp controller, this is just a template for all Controller tests.
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Mark Wilkie
+ * @copyright 2009-2013 Gina Trapani, Mark Wilkie
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 
 class TestOfTestAdminController extends ThinkUpUnitTestCase {
 
@@ -65,12 +65,13 @@ class TestOfTestAdminController extends ThinkUpUnitTestCase {
         $v_mgr = $controller->getViewManager();
         $config = Config::getInstance();
         $this->assertEqual('You must <a href="'.$config->getValue('site_root_path').
-        'session/login.php">log in</a> to do this.', $v_mgr->getTemplateDataItem('errormsg'));
+        'session/login.php">log in</a> to do this.', $v_mgr->getTemplateDataItem('error_msg'));
     }
 
     public function testLoggedInAsAdmin() {
         $this->simulateLogin('me@example.com', true);
         $config = Config::getInstance();
+        $config->setValue("app_title_prefix", "");
         $config->setValue('site_root_path', '/my/path/to/thinkup/');
 
         $controller = new TestAdminController(true);
@@ -82,13 +83,14 @@ class TestOfTestAdminController extends ThinkUpUnitTestCase {
         $this->assertEqual($v_mgr->getTemplateDataItem('app_title'), 'ThinkUp');
 
         $this->assertEqual($results,
-        '<a href="/my/path/to/thinkup/">ThinkUp</a>: Testing, testing, 123 | Logged in as me@example.com', 
+        '<a href="/my/path/to/thinkup/">ThinkUp</a>: Testing, testing, 123 | Logged in as me@example.com',
         "auth controller output when logged in");
     }
 
     public function testLoggedInNotAsAdmin() {
         $this->simulateLogin('me@example.com');
         $config = Config::getInstance();
+        $config->setValue("app_title_prefix", "");
         $config->setValue('site_root_path', '/my/path/to/thinkup/');
 
         $controller = new TestAdminController(true);
@@ -96,6 +98,6 @@ class TestOfTestAdminController extends ThinkUpUnitTestCase {
 
         $v_mgr = $controller->getViewManager();
         $config = Config::getInstance();
-        $this->assertEqual('You must be a ThinkUp admin to do this', $v_mgr->getTemplateDataItem('errormsg'));
+        $this->assertEqual('You must be a ThinkUp admin to do this', $v_mgr->getTemplateDataItem('error_msg'));
     }
 }

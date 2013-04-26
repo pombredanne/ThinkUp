@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/init.tests.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -22,7 +22,7 @@
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani
+ * @copyright 2009-2013 Gina Trapani
  */
 putenv("MODE=TESTS");
 require_once 'config.tests.inc.php';
@@ -41,16 +41,20 @@ if ( !defined('TESTS_RUNNING') ) {
 }
 
 //Register our lazy class loader
-require_once THINKUP_ROOT_PATH.'webapp/_lib/model/class.Loader.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/class.Loader.php';
 
 Loader::register(array(
 THINKUP_ROOT_PATH . 'tests/',
 THINKUP_ROOT_PATH . 'tests/classes/',
 THINKUP_ROOT_PATH . 'tests/fixtures/',
-THINKUP_ROOT_PATH . 'webapp/plugins/expandurls/tests/',
-THINKUP_ROOT_PATH . 'webapp/plugins/embedthread/tests/',
-THINKUP_ROOT_PATH . 'webapp/plugins/facebook/tests/',
-THINKUP_ROOT_PATH . 'webapp/plugins/twitter/tests/',
-THINKUP_ROOT_PATH . 'webapp/plugins/geoencoder/tests/',
-THINKUP_ROOT_PATH . 'webapp/plugins/hellothinkup/tests/'
+THINKUP_WEBAPP_PATH . 'plugins/expandurls/tests/',
+THINKUP_WEBAPP_PATH . 'plugins/embedthread/tests/',
+THINKUP_WEBAPP_PATH . 'plugins/facebook/tests/',
+THINKUP_WEBAPP_PATH . 'plugins/twitter/tests/',
+THINKUP_WEBAPP_PATH . 'plugins/twitterrealtime/tests/',
+THINKUP_WEBAPP_PATH . 'plugins/geoencoder/tests/',
+THINKUP_WEBAPP_PATH . 'plugins/hellothinkup/tests/',
+THINKUP_WEBAPP_PATH . 'plugins/googleplus/tests/',
+THINKUP_WEBAPP_PATH . 'plugins/foursquare/tests/',
+THINKUP_WEBAPP_PATH . 'plugins/insightsgenerator/tests/'
 ));

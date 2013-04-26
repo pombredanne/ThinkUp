@@ -28,7 +28,7 @@
         <div class="clearfix">
           <div class="grid_2 alpha">
             <div class="avatar-container">
-              <img src="{$profile->avatar}" class="avatar2"/><img src="{$site_root_path}plugins/{$profile->network|get_plugin_path}/assets/img/favicon.ico" class="service-icon2"/>
+              <img src="{$profile->avatar}" class="avatar2" width="48" height="48"/><img src="{$site_root_path}plugins/{$profile->network|get_plugin_path}/assets/img/favicon.png" class="service-icon2"/>
             </div>
           </div>
           <div class="grid_12">
@@ -63,10 +63,10 @@
         {if $mutual_friends}
         <div class="clearfix">
             <h2>Mutual friends</h2>
-            <div class="grid_18 alpha omega">                  
+            <div class="grid_18 alpha omega">
             {foreach from=$mutual_friends key=uid item=u name=foo}
             <div class="avatar-container float-l mr_10 mb_10">  
-               <a href="http://twitter.com/{$u.user_name}" title="{$u.user_name}"><img src="{$u.avatar}" class="avatar2"/><img src="{$site_root_path}plugins/{$u.network}/assets/img/favicon.ico" class="service-icon2"/></a> 
+               <a href="https://twitter.com/intent/user?user_id={$u.user_id}" title="{$u.user_name}"><img src="{$u.avatar}" class="avatar2" width="48" height="48"/><img src="{$site_root_path}plugins/{$u.network}/assets/img/favicon.png" class="service-icon2"/></a> 
             </div>
             {/foreach}
             </div>
@@ -77,7 +77,7 @@
         <div class="clearfix">
             <h2>Posts</h2>
             {foreach from=$user_statuses key=tid item=t name=foo}
-              {include file="_post.lite.tpl" t=$t}
+              {include file="_post.counts_no_author.tpl" post=$t}
             {/foreach}
 
            <div class="float-l">

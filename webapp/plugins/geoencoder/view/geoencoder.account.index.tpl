@@ -1,21 +1,31 @@
-<div class="append_20">
-<h2 class="subhead">GeoEncoder Plugin</h2>
+<div class="plugin-info">
 
-<p>
-    The Geoencoder plugin fetches latitude and longitude points for a post or user's location to plot on a Google Map.
-</p>
-<br>
+    <span class="pull-right">{insert name="help_link" id='geoencoder'}</span>
+    <h1>
+        <img src="{$site_root_path}plugins/geoencoder/assets/img/geoencoder_icon.png" class="plugin-image">
+        GeoEncoder Plugin
+    </h1>
+
+    <p>The GeoEncoder plugin plots a post's responses on a Google Map and can lists them by distance from the original poster.</p>
+
+</div>
+
 
 <div id="contact-admin-div" style="display: none; margin-top: 20px;">
 {include file="_plugin.admin-request.tpl"}
 </div>
 
 {if $options_markup}
-<br />
 {if $user_is_admin}
-<p>
-	<b>Option(s)</b>
-</p>
+{include file="_plugin.showhider.tpl"}
+
+{include file="_usermessage.tpl" field="setup"}
+<p style="padding:5px">To set up the GeoEncoder plugin:</p>
+<ol style="margin-left:40px">
+<li><a href="http://code.google.com/apis/console#access" target="_blank" style="text-decoration : underline;">Create a project in the Google APIs Console.</a></li>
+<li>Click "Services" and switch Google Maps API v2 to "On." </li>
+<li>Click "API Access." Under "Simple API Access", copy and paste the Google-provided API key here.</li>
+</ol>
 {/if}
 <p>
 {$options_markup}
@@ -28,5 +38,6 @@ if( ! required_values_set && ! is_admin) {
 {/literal}
 </script>
 {/if}
-
-<br/>
+{if $user_is_admin}
+</div>
+{/if}

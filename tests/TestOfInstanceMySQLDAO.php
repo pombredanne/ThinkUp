@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfInstanceMySQLDAO.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Guillaume Boudreau, Christoffer Viken, Mark Wilkie
+ * Copyright (c) 2009-2013 Gina Trapani, Guillaume Boudreau, Christoffer Viken, Mark Wilkie
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -26,11 +26,11 @@
  * @author Christoffer Viken <christoffer[at]viken[dot]me>
  * @author Mark Wilkie <mark[at]bitterpill[dot]org>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Guillaume Boudreau, Christoffer Viken, Mark Wilkie
+ * @copyright 2009-2013 Gina Trapani, Guillaume Boudreau, Christoffer Viken, Mark Wilkie
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 
 class TestOfInstanceMySQLDAO extends ThinkUpUnitTestCase {
     protected $DAO;
@@ -45,28 +45,31 @@ class TestOfInstanceMySQLDAO extends ThinkUpUnitTestCase {
         $builders = array();
 
         $builders[] = FixtureBuilder::build('instances', array('network_user_id'=>10, 'network_username'=>'jack',
-        'network'=>'twitter', 'network_viewer_id'=>10, 'crawler_last_run'=>'1988-01-20 12:00:00', 'is_active'=>1, 
-        'is_public'=>0));
+        'network'=>'twitter', 'network_viewer_id'=>10, 'crawler_last_run'=>'1988-01-20 12:00:00', 'is_active'=>1,
+        'is_public'=>0, 'posts_per_day'=>11, 'posts_per_week'=>77));
 
         $builders[] = FixtureBuilder::build('instances', array('network_user_id'=>12, 'network_username'=>'jill',
-        'network'=>'twitter', 'network_viewer_id'=>12, 'crawler_last_run'=>'2010-01-20 12:00:00', 'is_active'=>1, 
-        'is_public'=>0));
+        'network'=>'twitter', 'network_viewer_id'=>12, 'crawler_last_run'=>'2010-01-20 12:00:00', 'is_active'=>1,
+        'is_public'=>0, 'posts_per_day'=>11, 'posts_per_week'=>77));
 
         $builders[] = FixtureBuilder::build('instances', array('network_user_id'=>13, 'network_username'=>'stuart',
-        'network'=>'twitter', 'network_viewer_id'=>13, 'crawler_last_run'=>'2010-01-01 12:00:00', 'is_active'=>0, 
-        'is_public'=>1));
+        'network'=>'twitter', 'network_viewer_id'=>13, 'crawler_last_run'=>'2010-01-01 12:00:00', 'is_active'=>0,
+        'is_public'=>1, 'posts_per_day'=>11, 'posts_per_week'=>77));
 
         $builders[] = FixtureBuilder::build('instances', array('network_user_id'=>15,
-        'network_username'=>'Jillian Dickerson', 'network'=>'facebook', 'network_viewer_id'=>15, 
-        'crawler_last_run'=>'2010-01-01 12:00:01', 'is_active'=>1, 'is_public'=>1));
+        'network_username'=>'Jillian Dickerson', 'network'=>'facebook', 'network_viewer_id'=>15,
+        'crawler_last_run'=>'2010-01-01 12:00:01', 'is_active'=>1, 'is_public'=>1, 'posts_per_day'=>11,
+        'posts_per_week'=>77));
 
         $builders[] = FixtureBuilder::build('instances', array('network_user_id'=>16, 'network_username'=>'Paul Clark',
         'network'=>'facebook', 'network_viewer_id'=>16, 'crawler_last_run'=>'2010-01-01 12:00:02', 'is_active'=>0,
-        'is_public'=>1));
+        'is_public'=>1, 'posts_per_day'=>11, 'posts_per_week'=>77));
 
-        $builders[] = FixtureBuilder::build('owner_instances', array('owner_id'=>2, 'instance_id'=>1));
+        $builders[] = FixtureBuilder::build('owner_instances', array('owner_id'=>2, 'instance_id'=>1,
+        'auth_error'=>"There has been an error."));
 
-        $builders[] = FixtureBuilder::build('owner_instances', array('owner_id'=>2, 'instance_id'=>2));
+        $builders[] = FixtureBuilder::build('owner_instances', array('owner_id'=>2, 'instance_id'=>2,
+        'auth_error'=>''));
 
         return $builders;
     }
@@ -182,7 +185,9 @@ class TestOfInstanceMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual($result->network_user_id, 10);
         $this->assertEqual($result->network_viewer_id, 10);
 
-        $q = "TRUNCATE TABLE tu_instances ";
+        $config = Config::getInstance();
+        $config_array = $config->getValuesArray();
+        $q = "TRUNCATE TABLE " . $config_array['table_prefix'] . "instances ";
         PDODAO::$PDO->exec($q);
 
         //Try empty
@@ -362,80 +367,94 @@ class TestOfInstanceMySQLDAO extends ThinkUpUnitTestCase {
 
     public function testGetByOwnerAndNetwork(){
         $data = array(
-            'id'=>2,
-            'user_name'=>'steven',
-            'full_name'=>'Steven Warren',
-            'email'=>'me@example.com',
-            'last_login'=>'Yesterday',
-            'is_admin'=>1,
-            'is_activated'=>1,
-            'failed_logins'=>0,
-            'account_status'=>''
-            );
-            $owner = new Owner($data);
+        'id'=>2,
+        'user_name'=>'steven',
+        'full_name'=>'Steven Warren',
+        'email'=>'me@example.com',
+        'last_login'=>'Yesterday',
+        'is_admin'=>1,
+        'is_activated'=>1,
+        'failed_logins'=>0,
+        'account_status'=>''
+        );
+        $owner = new Owner($data);
 
-            // Test is-admin twitter
-            $result = $this->DAO->getByOwnerAndNetwork($owner, 'twitter');
-            $this->assertIsA($result, "array");
-            $this->assertEqual(count($result), 3);
-            $users = array('jill','stuart','jack');
-            $uID = array(12,13,10);
-            $vID = array(12,13,10);
-            foreach($result as $id=>$i){
-                $this->assertIsA($i, "Instance");
-                $this->assertEqual($i->network_username, $users[$id]);
-                $this->assertEqual($i->network_user_id, $uID[$id]);
-                $this->assertEqual($i->network_viewer_id, $vID[$id]);
-            }
+        // Test is-admin twitter
+        $result = $this->DAO->getByOwnerAndNetwork($owner, 'twitter');
+        $this->assertIsA($result, "array");
+        $this->assertEqual(count($result), 3);
+        $users = array('jill','stuart','jack');
+        $uID = array(12,13,10);
+        $vID = array(12,13,10);
+        foreach($result as $id=>$i){
+            $this->assertIsA($i, "Instance");
+            $this->assertEqual($i->network_username, $users[$id]);
+            $this->assertEqual($i->network_user_id, $uID[$id]);
+            $this->assertEqual($i->network_viewer_id, $vID[$id]);
+        }
 
-            // Test is-admin facebook
-            $result = $this->DAO->getByOwnerAndNetwork($owner, 'facebook');
-            $this->assertIsA($result, "array");
-            $this->assertEqual(count($result), 2);
-            $users = array('Paul Clark','Jillian Dickerson');
-            $uID = array(16,15);
-            $vID = array(16,15);
-            foreach($result as $id=>$i){
-                $this->assertIsA($i, "Instance");
-                $this->assertEqual($i->network_username, $users[$id]);
-                $this->assertEqual($i->network_user_id, $uID[$id]);
-                $this->assertEqual($i->network_viewer_id, $vID[$id]);
-            }
+        // Test is-admin twitter, active only
+        $result = $this->DAO->getByOwnerAndNetwork($owner, 'twitter', true, true);
+        $this->assertIsA($result, "array");
+        $this->assertEqual(count($result), 2); //jill and jack active, stuart is not
+        $users = array('jill','jack');
+        $uID = array(12,10);
+        $vID = array(12,10);
+        foreach($result as $id=>$i){
+            $this->assertIsA($i, "Instance");
+            $this->assertEqual($i->network_username, $users[$id]);
+            $this->assertEqual($i->network_user_id, $uID[$id]);
+            $this->assertEqual($i->network_viewer_id, $vID[$id]);
+        }
 
-            // Test is-admin Twitter, forced not
-            $result = $this->DAO->getByOwnerAndNetwork($owner, 'twitter', true);
-            $this->assertIsA($result, "array");
-            $this->assertEqual(count($result), 2);
-            $users = array('jill','jack');
-            $uID = array(12,10);
-            $vID = array(12,10);
-            foreach($result as $id=>$i){
-                $this->assertIsA($i, "Instance");
-                $this->assertEqual($i->network_username, $users[$id]);
-                $this->assertEqual($i->network_user_id, $uID[$id]);
-                $this->assertEqual($i->network_viewer_id, $vID[$id]);
-            }
+        // Test is-admin facebook
+        $result = $this->DAO->getByOwnerAndNetwork($owner, 'facebook');
+        $this->assertIsA($result, "array");
+        $this->assertEqual(count($result), 2);
+        $users = array('Paul Clark','Jillian Dickerson');
+        $uID = array(16,15);
+        $vID = array(16,15);
+        foreach($result as $id=>$i){
+            $this->assertIsA($i, "Instance");
+            $this->assertEqual($i->network_username, $users[$id]);
+            $this->assertEqual($i->network_user_id, $uID[$id]);
+            $this->assertEqual($i->network_viewer_id, $vID[$id]);
+        }
 
-            // Test not admin twitter
-            $owner->is_admin = false;
-            $result = $this->DAO->getByOwnerAndNetwork($owner, 'twitter');
-            $this->assertIsA($result, "array");
-            $this->assertEqual(count($result), 2);
-            $users = array('jill','jack');
-            $uID = array(12,10);
-            $vID = array(12,10);
-            foreach($result as $id=>$i){
-                $this->assertIsA($i, "Instance");
-                $this->assertEqual($i->network_username, $users[$id]);
-                $this->assertEqual($i->network_user_id, $uID[$id]);
-                $this->assertEqual($i->network_viewer_id, $vID[$id]);
-            }
+        // Test is-admin Twitter, forced not
+        $result = $this->DAO->getByOwnerAndNetwork($owner, 'twitter', true);
+        $this->assertIsA($result, "array");
+        $this->assertEqual(count($result), 2);
+        $users = array('jill','jack');
+        $uID = array(12,10);
+        $vID = array(12,10);
+        foreach($result as $id=>$i){
+            $this->assertIsA($i, "Instance");
+            $this->assertEqual($i->network_username, $users[$id]);
+            $this->assertEqual($i->network_user_id, $uID[$id]);
+            $this->assertEqual($i->network_viewer_id, $vID[$id]);
+        }
 
-            $owner->id = 3;
-            //Try empty
-            $result = $this->DAO->getByOwnerAndNetwork($owner, 'twitter');;
-            $this->assertIsA($result, "array");
-            $this->assertEqual(count($result), 0);
+        // Test not admin twitter
+        $owner->is_admin = false;
+        $result = $this->DAO->getByOwnerAndNetwork($owner, 'twitter');
+        $this->assertIsA($result, "array");
+        $this->assertEqual(count($result), 2);
+        $users = array('jill','jack');
+        $uID = array(12,10);
+        $vID = array(12,10);
+        foreach($result as $id=>$i){
+            $this->assertIsA($i, "Instance");
+            $this->assertEqual($i->network_username, $users[$id]);
+            $this->assertEqual($i->network_user_id, $uID[$id]);
+            $this->assertEqual($i->network_viewer_id, $vID[$id]);
+        }
+
+        $owner->id = 3;
+        //Try empty
+        $result = $this->DAO->getByOwnerAndNetwork($owner, 'twitter');;
+        $this->assertIsA($result, "array");
+        $this->assertEqual(count($result), 0);
     }
 
     public function testSetPublic(){
@@ -485,11 +504,11 @@ class TestOfInstanceMySQLDAO extends ThinkUpUnitTestCase {
         for($i=0; $i <= 250; $i++){
             $sender = rand(5,16);
             $data = 'asdf qwerty flakes meep';
-            $postid = rand(1000, 1000000);
-            while(isset($pic[$postid])){
-                $postid = rand(1000, 1000000);
+            $post_id = rand(1000, 1000000);
+            while(isset($pic[$post_id])){
+                $post_id = rand(1000, 1000000);
             }
-            $pic[$postid] = true;
+            $pic[$post_id] = true;
 
             $number = rand(1,8);
             if ($number == 1 or $number == 2){
@@ -501,21 +520,22 @@ class TestOfInstanceMySQLDAO extends ThinkUpUnitTestCase {
             }
             if ($number % 2 == 0) {
                 $reply_to = '11';
-                if($sender == 10){
+                if ($sender == 10){
                     $replies++;
                 }
             } else {
                 $reply_to = 'NULL';
             }
-            $builders[] = FixtureBuilder::build('posts', array('post_id'=>$postid, 'author_user_id'=>$sender,
-            'post_text'=>$data, 'pub_date'=>'-'.$number.'h', 'in_reply_to_user_id'=>$reply_to));
-            if($sender == 10){
+            $builders[] = FixtureBuilder::build('posts', array('id'=>$post_id, 'post_id'=>$post_id,
+            'author_user_id'=>$sender, 'post_text'=>$data, 'pub_date'=>'-'.$number.'h',
+            'in_reply_to_user_id'=>$reply_to));
+            if ($sender == 10){
                 $posts++;
             }
 
             if ($number % 2 == 1) {
-                $builders[] = FixtureBuilder::build('links', array('url'=>$data, 'post_id'=>$postid));
-                if($sender == 10){
+                $builders[] = FixtureBuilder::build('links', array('url'=>$data, 'post_key'=>$post_id));
+                if ($sender == 10){
                     $links++;
                 }
             }
@@ -525,11 +545,11 @@ class TestOfInstanceMySQLDAO extends ThinkUpUnitTestCase {
         $follows = 0;
         for($i=0; $i<= 150; $i++){
             $follow = array("follower"=>rand(5,25), "following"=>rand(5,25));
-            if(!isset($fd[$follow['following']."-".$follow['follower']])){
+            if (!isset($fd[$follow['following']."-".$follow['follower']])){
                 $fd[$follow['following']."-".$follow['follower']] = true;
                 $builders[] = FixtureBuilder::build('follows', array('user_id'=>$follow['following'],
                 'follower_id'=>$follow['follower']));
-                if($follow['following'] == 10){
+                if ($follow['following'] == 10){
                     $follows++;
                 }
             }
@@ -576,7 +596,7 @@ class TestOfInstanceMySQLDAO extends ThinkUpUnitTestCase {
         $result = $this->DAO->getByUsername('jack');
         $this->assertEqual($result->total_posts_by_owner, 1024);
         $this->assertEqual($result->last_post_id, 512);
-        $this->assertEqual($result->total_replies_in_system, $mentions);
+        $this->assertNull($result->total_replies_in_system);
         $this->assertEqual($result->total_follows_in_system, $follows);
         $this->assertEqual($result->total_posts_in_system, $posts);
         $this->assertTrue($result->is_archive_loaded_follows);
@@ -590,8 +610,9 @@ class TestOfInstanceMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual($result->network_viewer_id, 10);
 
         // Check if the stats were correctly calculated and saved
-        $posts_per = ($posts > 25) ? 25 : $posts; // post per are limited to a max of 25, see getInstanceUserStats()
-        $this->assertEqual($result->posts_per_day, $posts_per);
+        // post per are limited to a max of 25, see getInstanceUserStats()
+        $posts_per = ($posts > 25) ? 25 : $posts;
+        //        $this->assertEqual(round($result->posts_per_day), $posts_per);
         $this->assertEqual($result->posts_per_week, $posts_per);
         $this->assertEqual($result->percentage_replies, round($replies / $posts * 100, 2));
         $this->assertEqual($result->percentage_links, round($links / $posts * 100, 2));
@@ -642,10 +663,24 @@ class TestOfInstanceMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertFalse($result);
     }
 
+    public function testIsInstancePublic(){
+        // Test private instance
+        $result = $this->DAO->isInstancePublic("jack", "twitter");
+        $this->assertFalse($result);
+
+        // Test public instance
+        $result = $this->DAO->isInstancePublic("stuart", "twitter");
+        $this->assertTrue($result);
+
+        // Test non-existent instance
+        $result = $this->DAO->isInstancePublic("no one", "facebook");
+        $this->assertFalse($result);
+    }
+
     public function testGetByUserAndViewerId() {
         $this->DAO = new InstanceMySQLDAO();
         $builders[] = FixtureBuilder::build('instances', array('network_user_id'=>17,
-        'network_username'=>'Jillian Micheals', 'network'=>'facebook', 'network_viewer_id'=>15, 
+        'network_username'=>'Jillian Micheals', 'network'=>'facebook', 'network_viewer_id'=>15,
         'crawler_last_run'=>'2010-01-01 12:00:01', 'is_active'=>1));
 
         $result = $this->DAO->getByUserAndViewerId(10, 10, 'twitter');
@@ -658,7 +693,7 @@ class TestOfInstanceMySQLDAO extends ThinkUpUnitTestCase {
     public function testGetByViewerId() {
         $this->DAO = new InstanceMySQLDAO();
         $builders[] = FixtureBuilder::build('instances', array('network_user_id'=>17,
-        'network_username'=>'Jillian Micheals', 'network'=>'facebook', 'network_viewer_id'=>15, 
+        'network_username'=>'Jillian Micheals', 'network'=>'facebook', 'network_viewer_id'=>15,
         'crawler_last_run'=>'2010-01-01 12:00:01', 'is_active'=>1));
 
         $result = $this->DAO->getByViewerId(15);
@@ -669,11 +704,11 @@ class TestOfInstanceMySQLDAO extends ThinkUpUnitTestCase {
     public function testGetByUsernameOnNetwork() {
         $this->DAO = new InstanceMySQLDAO();
         $builders[] = FixtureBuilder::build('instances', array('network_user_id'=>17,
-        'network_username'=>'salma', 'network'=>'facebook', 'network_viewer_id'=>15, 
+        'network_username'=>'salma', 'network'=>'facebook', 'network_viewer_id'=>15,
         'crawler_last_run'=>'2010-01-01 12:00:01', 'is_active'=>1));
 
         $builders[] = FixtureBuilder::build('instances', array('network_user_id'=>18,
-        'network_username'=>'salma', 'network'=>'facebook page', 'network_viewer_id'=>15, 
+        'network_username'=>'salma', 'network'=>'facebook page', 'network_viewer_id'=>15,
         'crawler_last_run'=>'2010-01-01 12:00:01', 'is_active'=>1));
 
         $result = $this->DAO->getByUsernameOnNetwork('salma', 'facebook');
@@ -713,4 +748,51 @@ class TestOfInstanceMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual($result[0]->network_username, "Jillian Dickerson" );
     }
 
+    public function testUpdateInstanceUsername() {
+        $this->DAO = new InstanceMySQLDAO();
+        $builders[] = FixtureBuilder::build('instances', array('network_user_id'=>17,
+        'network_username'=>'johndoe', 'network'=>'twitter', 'network_viewer_id'=>15,
+        'crawler_last_run'=>'2010-01-01 12:00:01', 'is_active'=>1));
+
+        $instance = $this->DAO->getByUsername('johndoe');
+        $update_cnt = $this->DAO->updateUsername($instance->id, 'johndoe2');
+        $this->assertEqual(1, $update_cnt);
+        $instance = $this->DAO->getByUsername('johndoe');
+        $this->assertNull($instance);
+        $instance = $this->DAO->getByUsername('johndoe2');
+        $this->assertEqual($instance->network_username, "johndoe2" );
+    }
+
+    public function testGetActiveInstancesStalestFirstForOwnerByNetworkNoAuthError() {
+        $this->builders[] = FixtureBuilder::build('instances', array('network_user_id'=>17, 'network_username'=>'yaya',
+        'network'=>'twitter', 'network_viewer_id'=>17, 'crawler_last_run'=>'2010-01-21 12:00:00', 'is_active'=>1,
+        'is_public'=>0));
+
+        $this->builders[] = FixtureBuilder::build('owner_instances', array('owner_id'=>3, 'instance_id'=>6,
+        'auth_error'=>''));
+
+        $this->DAO = new InstanceMySQLDAO();
+        $owner = new Owner();
+        $owner->id = 2;
+
+        //Owner isn't an admin
+        $owner->is_admin = false;
+
+        //Should only return 1 result
+        $result = $this->DAO->getActiveInstancesStalestFirstForOwnerByNetworkNoAuthError($owner, 'twitter');
+        $this->assertEqual(sizeof($result), 1);
+        $this->assertEqual($result[0]->id, 2);
+        $this->assertEqual($result[0]->network_username, "jill");
+
+        //Owner is an admin
+        $owner->is_admin = true;
+
+        //Should return 2 results
+        $result = $this->DAO->getActiveInstancesStalestFirstForOwnerByNetworkNoAuthError($owner, 'twitter');
+        $this->assertEqual(sizeof($result), 2);
+        $this->assertEqual($result[0]->id, 2);
+        $this->assertEqual($result[0]->network_username, "jill");
+        $this->assertEqual($result[1]->id, 6);
+        $this->assertEqual($result[1]->network_username, "yaya");
+    }
 }

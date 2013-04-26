@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/view/plugins/modifier.tweet_from_id.php
  *
- * Copyright (c) 2009-2011 Gina Trapani
+ * Copyright (c) 2009-2013 Gina Trapani
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -36,14 +36,14 @@
  * Input:    key
  * Example:  {insert name="help_link" id="api"}
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2011 Gina Trapani
+ * @copyright 2011-2013 Gina Trapani
  * @version 1.0
  * @param string
  */
 function smarty_insert_help_link($params, &$smarty) {
     if (isset($smarty->_tpl_vars['help'][$params['id']])){
-        return '<a href="http://thinkupapp.com/docs/'.$smarty->_tpl_vars['help'][$params['id']].
-        '.html" title="Learn more"><img src="'.$smarty->_tpl_vars['site_root_path'].'assets/img/help.png"></a>';
+        return '<a href="http://thinkup.com/docs/'.$smarty->_tpl_vars['help'][$params['id']].
+        '.html" title="Learn more" class="btn btn-mini btn-help">Help <i class="icon-question-sign "></i></a>';
     } else {
         return '';
     }

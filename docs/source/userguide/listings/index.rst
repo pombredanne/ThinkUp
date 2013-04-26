@@ -14,6 +14,8 @@ Dashboard data listings apply to sets of posts or users.
 
    twitter/dashboard_listings.rst
    facebook/dashboard_listings.rst
+   foursquare/dashboard_listings.rst
+   googleplus/dashboard_listings.rst
 
 Post Data Listings
 ------------------
@@ -26,3 +28,5 @@ Per-post data listings show information as it relates to a single post.
    all/post_listings.rst
    twitter/post_listings.rst
    facebook/post_listings.rst
+   googleplus/post_listings.rst
+   geoencoder/post_listings.rst

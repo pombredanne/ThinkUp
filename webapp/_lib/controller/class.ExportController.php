@@ -3,11 +3,11 @@
  *
  * ThinkUp/webapp/_lib/controller/class.ExportController.php
  *
- * Copyright (c) 2009-2011 Gina Trapani, Michael Louis Thaler
+ * Copyright (c) 2009-2013 Gina Trapani, Michael Louis Thaler
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -25,7 +25,7 @@
  * Exports posts from an instance user on ThinkUp.
  *
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Gina Trapani, Michael Louis Thaler
+ * @copyright 2009-2013 Gina Trapani, Michael Louis Thaler
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
@@ -58,8 +58,8 @@ class ExportController extends ThinkUpAuthController {
         $this->setContentType('text/csv');
 
         if (!$this->is_missing_param) {
-            $od = DAOFactory::getDAO('OwnerDAO');
-            $owner = $od->getByEmail( $this->getLoggedInUser() );
+            $owner_dao = DAOFactory::getDAO('OwnerDAO');
+            $owner = $owner_dao->getByEmail( $this->getLoggedInUser() );
 
             $instance_dao = DAOFactory::getDAO('InstanceDAO');
             if ( isset($_GET['u']) && $instance_dao->isUserConfigured($_GET['u'], $_GET['n']) ){
@@ -67,7 +67,7 @@ class ExportController extends ThinkUpAuthController {
                 $network = $_GET['n'];
                 $instance = $instance_dao->getByUsernameOnNetwork($username, $network);
                 $owner_instance_dao = DAOFactory::getDAO('OwnerInstanceDAO');
-                if ( !$owner_instance_dao->doesOwnerHaveAccess($owner, $instance) ) {
+                if ( !$owner_instance_dao->doesOwnerHaveAccessToInstance($owner, $instance) ) {
                     $this->addErrorMessage('Insufficient privileges');
                     return $this->generateView();
                 } else {
@@ -138,9 +138,9 @@ class ExportController extends ThinkUpAuthController {
         }
 
         // make sure the file name does not contain spaces.
-        $filename = str_replace(' ', '_', $filename);
+        $filename = str_replace(' ', '_', $filename).'.csv';
 
-        if( ! headers_sent() ) { // this is so our test don't barf on us
+        if ( ! headers_sent() ) { // this is so our test don't barf on us
             header('Content-Type: text/csv');
             header('Content-Disposition: attachment; filename="'.$filename.'"');
             header('Pragma: no-cache');
@@ -151,6 +151,10 @@ class ExportController extends ThinkUpAuthController {
         // output csv header
         fputcsv($fp, $column_labels);
         foreach($data as $id => $post) {
+            //Set links to null to avoid E_NOTICE: Array to string conversion
+            //TODO: Properly handle this and add links to exported file; perhaps not for tweets which can contain
+            //multiple links but the main media link on G+ or Facebook posts
+            $post->links = null;
             fputcsv($fp, (array)$post);
 
             // flush after each fputcsv to avoid clogging the buffer on large datasets

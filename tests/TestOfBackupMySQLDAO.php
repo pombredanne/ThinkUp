@@ -3,11 +3,11 @@
  *
  * ThinkUp/tests/TestOfBackupMySQLDAO.php
  *
- * Copyright (c) 2009-2011 Mark Wilkie
+ * Copyright (c) 2009-2013 Mark Wilkie
  *
  * LICENSE:
  *
- * This file is part of ThinkUp (http://thinkupapp.com).
+ * This file is part of ThinkUp (http://thinkup.com).
  *
  * ThinkUp is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any
@@ -23,11 +23,11 @@
  *
  * @author Mark Wilkie <mark[at]bitterpill[dot]org>
  * @license http://www.gnu.org/licenses/gpl.html
- * @copyright 2009-2011 Mark Wilkie
+ * @copyright 2009-2013 Mark Wilkie
  */
 require_once dirname(__FILE__).'/init.tests.php';
-require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
-require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
+require_once THINKUP_WEBAPP_PATH.'_lib/extlib/simpletest/autorun.php';
+require_once THINKUP_WEBAPP_PATH.'config.inc.php';
 
 class TestOfBackupMySQLDAO extends ThinkUpUnitTestCase {
 
@@ -39,12 +39,12 @@ class TestOfBackupMySQLDAO extends ThinkUpUnitTestCase {
 
     public function tearDown() {
         parent::tearDown();
-        $zipfile = THINKUP_WEBAPP_PATH . BackupDAO::CACHE_DIR . '/thinkup_db_backup.zip';
-        $backup_dir = THINKUP_WEBAPP_PATH . BackupDAO::CACHE_DIR . '/backup';
-        if(file_exists($zipfile)) {
+        $zipfile = FileDataManager::getBackupPath('.htthinkup_db_backup.zip');
+        $backup_dir = FileDataManager::getBackupPath();
+        if (file_exists($zipfile)) {
             unlink($zipfile);
         }
-        if(file_exists($backup_dir)) {
+        if (file_exists($backup_dir)) {
             $this->recursiveDelete($backup_dir);
         }
     }
@@ -123,30 +123,70 @@ class TestOfBackupMySQLDAO extends ThinkUpUnitTestCase {
      */
     public function testImportData() {
         $dao = new BackupMySQLDAO();
+
+        $stmt = $this->pdo->query("show tables");
+        $data = $stmt->fetchAll();
+        $pre_import = count($data);
+
         $export_file = $dao->export();
-        //$this->pdo->query("drop table tu_plugin_options");
+
+        $this->pdo->query("drop table " . $this->table_prefix . "plugins");
         $this->assertTrue( $dao->import($export_file) );
-        $stmt = $this->pdo->query("show create table tu_plugins");
+        $stmt = $this->pdo->query("show create table " . $this->table_prefix . "plugins");
         $data = $stmt->fetch();
         $stmt->closeCursor();
-        $this->assertEqual($data['Table'], 'tu_plugins');
+        $this->assertEqual($data['Table'], $this->table_prefix . 'plugins');
 
-        $stmt = $this->pdo->query("select * from tu_plugins");
+        $stmt = $this->pdo->query("select * from " . $this->table_prefix . "plugins");
 
         $data = $stmt->fetch();
         $this->assertEqual($data['id'], 1);
         $this->assertEqual($data['name'], 'Twitter');
+
+        $stmt = $this->pdo->query("show tables");
+        $data = $stmt->fetchAll();
+        $post_import = count($data);
+        $this->assertEqual($pre_import, $post_import);
+    }
+
+    /**
+     * test import data, drop new tables not in backup
+     */
+    public function testImportDataDropNewTables() {
+        $dao = new BackupMySQLDAO();
+
+        $stmt = $this->pdo->query("show tables");
+        $data = $stmt->fetchAll();
+        $pre_import = count($data);
+
+        $export_file = $dao->export();
+        $this->pdo->query("drop table " . $this->table_prefix . "plugins");
+        $this->pdo->query("create table tu_dropme (`value` int(11) NOT NULL)");
+        $this->assertTrue( $dao->import($export_file) );
+        $stmt = $this->pdo->query("show create table " . $this->table_prefix . "plugins");
+        $data = $stmt->fetch();
+        $stmt->closeCursor();
+        $this->assertEqual($data['Table'], $this->table_prefix . 'plugins');
+
+        $stmt = $this->pdo->query("show tables like '%dropme'");
+        $data = $stmt->fetch();
+        $this->assertFalse($data); // table should be dropped
+
+        $stmt = $this->pdo->query("show tables");
+        $data = $stmt->fetchAll();
+        $post_import = count($data);
+        $this->assertEqual($pre_import, $post_import);
     }
 
     public function recursiveDelete($str){
-        if(is_file($str)){
-            if(! preg_match("MAKETHISDIRWRITABLE", $str)) {
+        if (is_file($str)){
+            if (!preg_match("MAKETHISDIRWRITABLE", $str)) {
                 return @unlink($str);
             } else {
                 return true;
             }
         }
-        elseif(is_dir($str)){
+        elseif (is_dir($str)){
             $scan = glob(rtrim($str,'/').'/*');
             foreach($scan as $index=>$path){
                 $this->recursiveDelete($path);
