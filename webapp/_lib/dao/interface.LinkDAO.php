@@ -51,12 +51,6 @@ interface LinkDAO {
      */
     public function saveExpansionError($url, $error_text);
     /**
-     * Updates a URL in storage.
-     * @param Link $link
-     * @return int Update count
-     */
-    public function update(Link $link);
-    /**
      * Update a Link's title in the data store.
      * @param int $id
      * @param str $title
@@ -73,6 +67,14 @@ interface LinkDAO {
      * @return array with Link objects
      */
     public function getLinksByFriends($user_id, $network, $count = 15, $page = 1, $is_public = false);
+    /**
+     * Get the number of links posted by a user.
+     * @param int $user_id
+     * @param str $network
+     * @param int $days_ago
+     * @return int links count
+     */
+    public function countLinksPostedByUserSinceDaysAgo($user_id, $network, $days_ago = 7);
     /**
      * Get the links in a user's favorites.
      * @param int $user_id

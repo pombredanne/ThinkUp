@@ -20,7 +20,7 @@
     {foreach from=$installed_plugins key=pid item=plugin name=foo}
         <tr>
             <td><b>{$plugin.name}</b></td>
-            <td>{$plugin.description}</td>
+            <td>{$plugin.description} {if $plugin.when}<span class="label">{$plugin.when}</span>{/if}</td>
         </tr>
     {/foreach}
     </table>
@@ -29,11 +29,9 @@
 <div class="append_20">
 
 {if $options_markup}
-    {if $user_is_admin}
-        {include file="_plugin.showhider.tpl"}
-        {include file="_usermessage.tpl" field="setup"}
-        {$options_markup}
-    {/if}
+    <p>
+    {$options_markup}
+    </p>
 {/if}
 </div>
 

@@ -38,10 +38,10 @@
         </td>
         {/if}
         <td class="action-button">
-            <a href="{$site_root_path}account/?p=twitter&u={$i->network_username}&n=twitter" class="btn btn-info btnHashtag">Saved searches</a>
+            <a href="{$site_root_path}account/?p=twitter&u={$i->network_username}&n=twitter#manage_plugin" class="btn btn-info btnHashtag">Saved searches</a>
         </td>
         <td class="action-button">
-            <span id="delete{$i->id}"><form method="post" action="{$site_root_path}account/?p=twitter">
+            <span id="delete{$i->id}"><form method="post" action="{$site_root_path}account/?p=twitter#manage_plugin">
             <input type="hidden" name="instance_id" value="{$i->id}">
             {insert name="csrf_token"}<input
             onClick="return confirm('Do you really want to delete this Twitter account?');"
@@ -53,6 +53,8 @@
 
 </table>
 {/if}
+
+{include file="_usermessage.tpl" field="membership_cap"}
 
 
 {if $oauthorize_link}

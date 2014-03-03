@@ -158,6 +158,24 @@ interface FollowDAO {
      */
     public function getLeastLikelyFollowersThisWeek($user_id, $network, $count = 20, $page = 1);
     /**
+     * Gets the followers who are verified by the network first seen by ThinkUp a specified number of days ago.
+     * @param str $user_id
+     * @param str $network
+     * @param int $days_ago
+     * @param int $limit
+     * @return array - numbered keys, with arrays - named keys
+     */
+    public function getVerifiedFollowersByDay($user_id, $network, $days_ago=0, $limit=10);
+    /**
+     * Gets the followers from a location by the network first seen by ThinkUp a specified number of days ago.
+     * @param str $user_id
+     * @param str $network
+     * @param str $location
+     * @param int $days_ago
+     * @param int $limit
+     **/
+    public function getFollowersFromLocationByDay($user_id, $network, $location, $days_ago=0, $limit=10);
+    /**
      * Gets the followers with the earliest join date.
      * @param int $user_id
      * @param str $network
@@ -227,6 +245,13 @@ interface FollowDAO {
      * @return array - numbered keys, with arrays - named keys
      */
     public function getFriendsNotFollowingBack($uid, $network);
+    /**
+     * Gets the people you follow and replied to on this week, a year ago.
+     * @param int $user_id
+     * @param str $network
+     * @return array - numbered keys, with arrays - named keys
+     */
+    public function getFolloweesRepliedToThisWeekLastYear($user_id, $network);
     /**
      * Search a user's followers names and bio. (Use name:term to search only name field.)
      * @param arr $keywords

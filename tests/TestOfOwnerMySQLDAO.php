@@ -55,15 +55,16 @@ class TestOfOwnerMySQLDAO extends ThinkUpUnitTestCase {
         $builders[] = FixtureBuilder::build('owners', array('full_name'=>'ThinkUp J. User',
         'email'=>'ttuser@example.com', 'is_activated'=>0, 'pwd'=>$pwd1,
         'pwd_salt'=>OwnerMySQLDAO::$default_salt, 'activation_code'=>'8888',
-        'account_status'=>'', 'api_key' => 'c9089f3c9adaf0186f6ffb1ee8d6501c'));
+        'account_status'=>'', 'api_key' => 'c9089f3c9adaf0186f6ffb1ee8d6501c',
+        'email_notification_frequency'=>'both', 'timezone'=>'UTC', 'membership_level'=>'Member'));
 
         $builders[] = FixtureBuilder::build('owners', array('full_name'=>'ThinkUp J. User1',
         'email'=>'ttuser1@example.com', 'is_activated'=>1, 'pwd'=>$pwd2,
-        'pwd_salt'=>OwnerMySQLDAO::$default_salt, 'account_status'=>''));
+        'pwd_salt'=>OwnerMySQLDAO::$default_salt, 'account_status'=>'', 'email_notification_frequency'=>'never'));
 
         $builders[] = FixtureBuilder::build('owners', array('full_name'=>'Salted User',
         'email'=>'salteduser@example.com', 'is_activated'=>1, 'pwd'=>$pwd3, 'pwd_salt'=>$salt,
-        'account_status'=>''));
+        'account_status'=>'','email_notification_frequency'=>'both'));
 
         return $builders;
     }
@@ -85,6 +86,9 @@ class TestOfOwnerMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual($existing_owner->failed_logins, 0);
         $this->assertEqual($existing_owner->account_status, '');
         $this->assertEqual($existing_owner->api_key, 'c9089f3c9adaf0186f6ffb1ee8d6501c');
+        $this->assertEqual($existing_owner->email_notification_frequency, 'both');
+        $this->assertEqual($existing_owner->timezone, 'UTC');
+        $this->assertEqual($existing_owner->membership_level, 'Member');
 
         //owner does not exist
         $non_existing_owner = $this->DAO->getByEmail('idontexist@example.com');
@@ -107,6 +111,8 @@ class TestOfOwnerMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual($existing_owner->failed_logins, 0);
         $this->assertEqual($existing_owner->account_status, '');
         $this->assertEqual($existing_owner->api_key, 'c9089f3c9adaf0186f6ffb1ee8d6501c');
+        $this->assertEqual($existing_owner->email_notification_frequency, 'both');
+        $this->assertEqual($existing_owner->timezone, 'UTC');
     }
 
     /**
@@ -117,6 +123,8 @@ class TestOfOwnerMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual(sizeof($all_owners), 3);
         $this->assertEqual($all_owners[0]->email, 'ttuser@example.com');
         $this->assertEqual($all_owners[1]->email, 'ttuser1@example.com');
+        $this->assertEqual($all_owners[0]->email_notification_frequency, 'both');
+        $this->assertEqual($all_owners[1]->email_notification_frequency, 'never');
     }
 
     /**
@@ -212,10 +220,12 @@ class TestOfOwnerMySQLDAO extends ThinkUpUnitTestCase {
      * Test create
      */
     public function testCreate() {
+        $config = Config::getInstance();
+        $config->setValue( 'timezone', 'Asia/Gaza');
         //Create new owner who does not exist
-        $this->assertNotEqual($this->DAO->create('ttuser2@example.com', 's3cr3t', 'ThinkUp J. User2'), false);
+        $this->assertTrue($this->DAO->create('ttuser2@example.com', 's3cr3t', 'ThinkUp J. User2'));
         //Create new owner who does exist
-        $this->assertEqual($this->DAO->create('ttuser@example.com', 's3cr3t', 'ThinkUp J. User2'), false);
+        $this->assertFalse($this->DAO->create('ttuser@example.com', 's3cr3t', 'ThinkUp J. User2'));
 
         // we should validate this created user data
         $sql = "select *, unix_timestamp(joined) as joined_ts from " .
@@ -226,11 +236,13 @@ class TestOfOwnerMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertNotEqual('s3cr3t', $data['pwd']); //pwd should be hashed, so not equal
         $this->assertEqual(0, $data['is_activated']);
         $this->assertEqual(0, $data['is_admin']);
+        $this->assertEqual('daily', $data['email_notification_frequency']); // daily is default
         $this->assertEqual('0000-00-00', $data['last_login']);
         $this->assertEqual('ttuser2@example.com', $data['email']);
         $this->assertTrue( time() < ($data['joined_ts'] + (60 * 60 * 25) )); // joind within last 25 hours
         $this->assertNotNull($data['api_key']);
         $this->assertEqual(strlen($data['api_key']), 32); //md5 32 char api key
+        $this->assertEqual('Asia/Gaza', $data['timezone']);
     }
 
     /**
@@ -268,6 +280,18 @@ class TestOfOwnerMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual($this->DAO->updateLastLogin('ttuser2@example.com'), 0);
         //Update wner who does exist
         $this->assertEqual($this->DAO->updateLastLogin('ttuser@example.com'), 1);
+    }
+
+    /**
+     * Test setEmailNotificationFrequency
+     */
+    public function testSetEmailNotificationFrequency() {
+        $existing_owner = $this->DAO->getByEmail('ttuser@example.com');
+        $this->assertEqual('both', $existing_owner->email_notification_frequency);
+        $this->DAO->setEmailNotificationFrequency($existing_owner->email, 'daily');
+
+        $existing_owner = $this->DAO->getByEmail('ttuser@example.com');
+        $this->assertEqual('daily', $existing_owner->email_notification_frequency);
     }
 
     /**
@@ -437,4 +461,58 @@ class TestOfOwnerMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertFalse($this->DAO->isOwnerAuthorized('ttuser1@example.com', 'wrong'),
         'Credentials should be invalid');
     }
+
+    public function testGetPrivateAPIKey() {
+        $builders_array = array();
+        // build our data
+        $builders_array[] = FixtureBuilder::build('owners', array('full_name'=>'ThinkUp J. User',
+        'email'=>'ttuser2@example.com', 'is_activated'=>0, 'is_admin'=>0, 'api_key_private'=>''));
+
+        $builders_array[] = FixtureBuilder::build('owners', array('full_name'=>'ThinkUp J. User',
+        'email'=>'ttuser3@example.com', 'is_activated'=>1, 'is_admin'=>1, 'api_key_private'=>'aabbccdd'));
+        // init our dao
+        $dao = new OwnerMySQLDAO();
+        $result = $dao->getPrivateAPIKey('ttuser2@example.com');
+        $this->assertFalse($result);
+
+        $result = $dao->getPrivateAPIKey('ttuser3@example.com');
+        $this->assertEqual($result, 'aabbccdd');
+    }
+
+    public function testIsOwnerAuthorizedViaPrivateAPIKey() {
+        $builders_array = array();
+        // build our data
+        $builders_array[] = FixtureBuilder::build('owners', array('full_name'=>'ThinkUp J. User',
+        'email'=>'ttuser2@example.com', 'is_activated'=>0, 'is_admin'=>0, 'api_key_private'=>''));
+
+        $builders_array[] = FixtureBuilder::build('owners', array('full_name'=>'ThinkUp J. User',
+        'email'=>'ttuser3@example.com', 'is_activated'=>1, 'is_admin'=>1, 'api_key_private'=>'aabbccdd'));
+        // init our dao
+        $dao = new OwnerMySQLDAO();
+
+        //empty api key for empty api key
+        $result = $dao->isOwnerAuthorizedViaPrivateAPIKey('ttuser2@example.com', '');
+        $this->assertFalse($result);
+
+        //wrong api key for email address
+        $result = $dao->isOwnerAuthorizedViaPrivateAPIKey('ttuser3@example.com', 'xyz');
+        $this->assertFalse($result);
+
+        //right api key for email address
+        $result = $dao->isOwnerAuthorizedViaPrivateAPIKey('ttuser3@example.com', 'aabbccdd');
+        $this->assertTrue($result);
+
+        //email address that doesn't exist
+        $result = $dao->isOwnerAuthorizedViaPrivateAPIKey('idontexisty@example.com', 'aabbccdd');
+        $this->assertFalse($result);
+    }
+
+    public function testSetTimeZone() {
+        $existing_owner = $this->DAO->getByEmail('ttuser@example.com');
+        $this->assertEqual('UTC', $existing_owner->timezone);
+        $this->DAO->setTimezone($existing_owner->email, 'America/Los_Angeles');
+
+        $existing_owner = $this->DAO->getByEmail('ttuser@example.com');
+        $this->assertEqual('America/Los_Angeles', $existing_owner->timezone);
+     }
 }

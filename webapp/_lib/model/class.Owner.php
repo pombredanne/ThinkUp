@@ -29,81 +29,89 @@
  */
 class Owner {
     /**
-     * @var int
+     * @var int Internal unique ID.
      */
     var $id;
     /**
-     *
-     * @var str
+     * @var str User full name.
      */
     var $full_name;
     /**
-     *
-     * @var str
+     * @var str User email.
      */
     var $email;
     /**
-     *
-     * @var bool Default false
+     * @var date Date user registered for an account.
      */
-    var $is_admin = false;
+    var $joined;
     /**
-     *
-     * @var bool Default false
+     * @var bool If user is activated, 1 for true, 0 for false.
      */
     var $is_activated = false;
     /**
-     *
-     * @var str Date
+     * @var bool If user is an admin, 1 for true, 0 for false.
+     */
+    var $is_admin = false;
+    /**
+     * @var date Last time user logged into ThinkUp.
      */
     var $last_login;
     /**
-     *
-     * @var array Of instances
+     * @var int Current number of failed login attempts.
+     */
+    var $failed_logins;
+    /**
+     * @var str Description of account status, i.e., "Inactive due to excessive failed login attempts".
+     */
+    var $account_status;
+    /**
+     * @var str Key to authorize API calls.
+     */
+    var $api_key;
+    /**
+     * @var str Optional non-user-facing API key.
+     */
+    var $api_key_private;
+    /**
+     * @var str How often to send email notifications (daily, weekly, both, never).
+     */
+    var $email_notification_frequency;
+    /**
+     * @var str Owner timezone.
+     */
+    var $timezone;
+    /**
+     * @var str ThinkUp.com membership level.
+     */
+    var $membership_level;
+    /**
+     * @var arr Non-persistent, used for UI, array of instances associated with owner.
      */
     var $instances = null;
     /**
-     * Token to email to user for resetting password
-     * @var str
+     * Valid values for membership level.
+     * @var array
      */
-    var $password_token;
+    static $valid_membership_values = array('Early Bird', 'Member', 'Late Bird', 'Pro', 'Exec');
 
-    /**
-     * Count of failed login attempts
-     * @var int
-     */
-    var $failed_logins;
-
-    /**
-     * String describing acount status, like "Too many failed logins" or "Never activated"
-     * @var str
-     */
-    var $account_status;
-
-    /**
-     * String api_key for API auth
-     * @var str
-     */
-    var $api_key;
-
-    /**
-     * Constructor
-     * @param array $val Key/value pairs to construct Owner
-     * @return Owner
-     */
-    public function __construct($val=false) {
-        if ($val) {
-            $this->id = $val["id"];
-            $this->full_name = $val["full_name"];
-            $this->email = $val['email'];
-            $this->last_login = $val['last_login'];
-            $this->is_admin = PDODAO::convertDBToBool($val["is_admin"]);
-            $this->is_activated = PDODAO::convertDBToBool($val["is_activated"]);
-            $this->account_status = $val["account_status"];
-            $this->failed_logins = $val["failed_logins"];
+    public function __construct($row = false) {
+        if ($row) {
+            $this->id = $row['id'];
+            $this->full_name = $row['full_name'];
+            $this->email = $row['email'];
+            $this->joined = $row['joined'];
+            $this->is_activated = PDODAO::convertDBToBool($row['is_activated']);
+            $this->is_admin = PDODAO::convertDBToBool($row['is_admin']);
+            $this->last_login = $row['last_login'];
+            $this->failed_logins = $row['failed_logins'];
+            $this->account_status = $row['account_status'];
+            $this->api_key = $row['api_key'];
+            $this->api_key_private = $row['api_key_private'];
+            $this->email_notification_frequency = $row['email_notification_frequency'];
+            $this->timezone = $row['timezone'];
+            $this->membership_level = $row['membership_level'];
         }
     }
-
     /**
      * Setter
      * @param array $instances
@@ -139,5 +147,30 @@ class Owner {
     public function validateRecoveryToken($token) {
         $data = explode('_', $this->password_token);
         return ((time() - $data[1] <= 86400) && ($token == $data[0]));
+    }
+
+    /**
+     * Check if the owner is a ThinkUp.com member of any level.
+     * @return bool Whether or not the owner is a member
+     */
+    public function isMemberAtAnyLevel() {
+        return (in_array($this->membership_level, self::$valid_membership_values));
+    }
+
+    /**
+     * Check if the owner is Member level, i.e., Early Bird, Member, or Late Bird.
+     * @return bool Whether or not the owner is a member at member level
+     */
+    public function isMemberLevel() {
+        return ($this->membership_level == 'Member' || $this->membership_level == 'Early Bird'
+        || $this->membership_level == 'Late Bird');
+    }
+
+    /**
+     * Check if the owner is Pro member level.
+     * @return bool Whether or not the owner is a Pro level
+     */
+    public function isProLevel() {
+        return ($this->membership_level === 'Pro');
     }
 }

@@ -50,8 +50,8 @@ class TestOfFacebookCrawler extends ThinkUpUnitTestCase {
         parent::setUp();
         $this->logger = Logger::getInstance();
         $r = array('id'=>1, 'network_username'=>'Gina Trapani', 'network_user_id'=>'606837591',
-        'network_viewer_id'=>'606837591', 'last_post_id'=>'0', 'last_page_fetched_replies'=>0,
-        'last_page_fetched_tweets'=>'0', 'total_posts_in_system'=>'0', 'total_replies_in_system'=>'0',
+        'network_viewer_id'=>'606837591', 'last_post_id'=>'0',
+        'total_posts_in_system'=>'0', 'total_replies_in_system'=>'0',
         'total_follows_in_system'=>'0', 'is_archive_loaded_replies'=>'0',
         'is_archive_loaded_follows'=>'0', 'crawler_last_run'=>'', 'earliest_reply_in_system'=>'',
         'avg_replies_per_day'=>'2', 'is_public'=>'0', 'is_active'=>'0', 'network'=>'facebook',
@@ -62,8 +62,8 @@ class TestOfFacebookCrawler extends ThinkUpUnitTestCase {
         $this->profile1_instance = new Instance($r);
 
         $r = array('id'=>2, 'network_username'=>'Mark Linford', 'network_user_id'=>'729597743',
-        'network_viewer_id'=>'729597743', 'last_post_id'=>'0', 'last_page_fetched_replies'=>0,
-        'last_page_fetched_tweets'=>'0', 'total_posts_in_system'=>'0', 'total_replies_in_system'=>'0',
+        'network_viewer_id'=>'729597743', 'last_post_id'=>'0',
+        'total_posts_in_system'=>'0', 'total_replies_in_system'=>'0',
         'total_follows_in_system'=>'0', 'is_archive_loaded_replies'=>'0',
         'is_archive_loaded_follows'=>'0', 'crawler_last_run'=>'', 'earliest_reply_in_system'=>'',
         'avg_replies_per_day'=>'2', 'is_public'=>'0', 'is_active'=>'0', 'network'=>'facebook',
@@ -74,8 +74,8 @@ class TestOfFacebookCrawler extends ThinkUpUnitTestCase {
         $this->profile2_instance = new Instance($r);
 
         $r = array('id'=>3, 'network_username'=>'Mark Linford', 'network_user_id'=>'7568536355',
-        'network_viewer_id'=>'729597743', 'last_post_id'=>'0', 'last_page_fetched_replies'=>0,
-        'last_page_fetched_tweets'=>'0', 'total_posts_in_system'=>'0', 'total_replies_in_system'=>'0',
+        'network_viewer_id'=>'729597743', 'last_post_id'=>'0',
+        'total_posts_in_system'=>'0', 'total_replies_in_system'=>'0',
         'total_follows_in_system'=>'0', 'is_archive_loaded_replies'=>'0',
         'is_archive_loaded_follows'=>'0', 'crawler_last_run'=>'', 'earliest_reply_in_system'=>'',
         'avg_replies_per_day'=>'2', 'is_public'=>'0', 'is_active'=>'0', 'network'=>'facebook page',
@@ -86,8 +86,8 @@ class TestOfFacebookCrawler extends ThinkUpUnitTestCase {
         $this->page1_instance = new Instance($r);
 
         $r = array('id'=>4, 'network_username'=>'Mark Linford', 'network_user_id'=>'133954286636768',
-        'network_viewer_id'=>'729597743', 'last_post_id'=>'0', 'last_page_fetched_replies'=>0,
-        'last_page_fetched_tweets'=>'0', 'total_posts_in_system'=>'0', 'total_replies_in_system'=>'0',
+        'network_viewer_id'=>'729597743', 'last_post_id'=>'0',
+        'total_posts_in_system'=>'0', 'total_replies_in_system'=>'0',
         'total_follows_in_system'=>'0', 'is_archive_loaded_replies'=>'0',
         'is_archive_loaded_follows'=>'0', 'crawler_last_run'=>'', 'earliest_reply_in_system'=>'',
         'avg_replies_per_day'=>'2', 'is_public'=>'0', 'is_active'=>'0', 'network'=>'facebook page',
@@ -98,8 +98,8 @@ class TestOfFacebookCrawler extends ThinkUpUnitTestCase {
         $this->page2_instance = new Instance($r);
 
         $r = array('id'=>5, 'network_username'=>'Liz Lemon', 'network_user_id'=>'123456',
-        'network_viewer_id'=>'123456', 'last_post_id'=>'0', 'last_page_fetched_replies'=>0,
-        'last_page_fetched_tweets'=>'0', 'total_posts_in_system'=>'0', 'total_replies_in_system'=>'0',
+        'network_viewer_id'=>'123456', 'last_post_id'=>'0',
+        'total_posts_in_system'=>'0', 'total_replies_in_system'=>'0',
         'total_follows_in_system'=>'0', 'is_archive_loaded_replies'=>'0',
         'is_archive_loaded_follows'=>'0', 'crawler_last_run'=>'', 'earliest_reply_in_system'=>'',
         'avg_replies_per_day'=>'2', 'is_public'=>'0', 'is_active'=>'0', 'network'=>'facebook',
@@ -108,6 +108,12 @@ class TestOfFacebookCrawler extends ThinkUpUnitTestCase {
         'earliest_post_in_system'=>'2009-01-01 13:48:05', 'favorites_profile' => '0'
         );
         $this->profile3_instance = new Instance($r);
+
+        $r['id'] = 6;
+        $r['network_username'] = 'Chris Moyer';
+        $r['network_user_id'] = '501771984';
+        $r['network_viewer_id'] = '501771984';
+        $this->profile5_instance = new Instance($r);
     }
 
     public function tearDown() {
@@ -162,10 +168,10 @@ class TestOfFacebookCrawler extends ThinkUpUnitTestCase {
         $this->assertEqual($post->favlike_count_cache, 0);
         $this->assertEqual($post->location, 'San Diego, California');
 
-        $post = $post_dao->getPost('153956564638648', 'facebook');
+        $post = $post_dao->getPost('10151848164181985', 'facebook');
         $this->assertEqual($post->post_text,
         'Britney Glee episode tonight. I may explode into a million pieces, splattered all over my living room walls.');
-        $this->assertEqual($post->reply_count_cache, 19);
+        $this->assertEqual($post->reply_count_cache, 31);
         $this->assertTrue($post->is_protected);
         $this->assertEqual($post->favlike_count_cache, 3);
         $this->assertEqual($post->location, 'San Diego, California');
@@ -176,13 +182,12 @@ class TestOfFacebookCrawler extends ThinkUpUnitTestCase {
         $this->assertEqual($post->location, 'Portland, Oregon');
         $this->assertEqual($post->in_reply_to_user_id, $this->profile1_instance->network_user_id);
 
-        $post = $post_dao->getPost('1546020', 'facebook');
-        $this->assertPattern('/not the target demographic/', $post->post_text);
+        $post = $post_dao->getPost('29187893', 'facebook');
+        $this->assertPattern('/to myself./', $post->post_text);
         $this->assertEqual($post->reply_count_cache, 0);
-        $this->assertEqual($post->in_reply_to_post_id, '153956564638648');
+        $this->assertEqual($post->in_reply_to_post_id, '10151848164181985');
         $this->assertTrue($post->is_protected);
         $this->assertEqual($post->favlike_count_cache, 0);
-        $this->assertEqual($post->location, 'La Mesa, California');
 
         $user_dao = new UserMySQLDAO();
         $user = $user_dao->getUserByName('Gina Trapani', 'facebook');
@@ -247,9 +252,9 @@ class TestOfFacebookCrawler extends ThinkUpUnitTestCase {
 
         // Test FollowerCount is set
         $sql = "SELECT * FROM ".$this->table_prefix.
-        "follower_count WHERE network='facebook' AND network_user_id='729597743';";
+        "count_history WHERE network='facebook' AND network_user_id='729597743' AND type='followers';";
 
-        $stmt = FollowerCountMySQLDAO::$PDO->query($sql);
+        $stmt = CountHistoryMySQLDAO::$PDO->query($sql);
         $data = array();
         while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             array_push($data, $row);
@@ -278,7 +283,7 @@ class TestOfFacebookCrawler extends ThinkUpUnitTestCase {
         $post = $post_dao->getPost('437900891355', 'facebook page');
         $this->assertEqual($post->post_text, 'Top 10 iOS Jailbreak Hacks');
         $this->assertFalse($post->is_protected);
-        $this->assertEqual($post->reply_count_cache, 8);
+        $this->assertEqual($post->reply_count_cache, 45);
 
         //test link with image
         $this->assertEqual(sizeof($post->links), 1);
@@ -314,11 +319,11 @@ class TestOfFacebookCrawler extends ThinkUpUnitTestCase {
         $this->assertNotNull($post);
         $this->assertEqual($post->author_user_id, '7568536355');
 
-        // Test FollowerCount is set
+        // Test follower count is set
         $sql = "SELECT * FROM ".$this->table_prefix.
-        "follower_count WHERE network='facebook page' AND network_user_id='7568536355';";
+        "count_history WHERE network='facebook page' AND network_user_id='7568536355' AND type='followers';";
 
-        $stmt = FollowerCountMySQLDAO::$PDO->query($sql);
+        $stmt = CountHistoryMySQLDAO::$PDO->query($sql);
         $data = array();
         while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             array_push($data, $row);
@@ -332,7 +337,16 @@ class TestOfFacebookCrawler extends ThinkUpUnitTestCase {
 
         $fbc->fetchPostsAndReplies('133954286636768', 'facebook page');
         $post_dao = new PostMySQLDAO();
-        $post = $post_dao->getPost('144568048938151', 'facebook page');
-        $this->assertEqual($post->reply_count_cache, 70);
+        $post = $post_dao->getPost('775180192497884', 'facebook page');
+        $this->assertEqual($post->reply_count_cache, 51);
+    }
+
+    public function testPaginatedPostLikes() {
+        $fbc = new FacebookCrawler($this->profile5_instance, 'fauxaccesstoken', 10);
+
+        $fbc->fetchPostsAndReplies('501771984', 'facebook');
+        $post_dao = new PostMySQLDAO();
+        $post = $post_dao->getPost('10151734003261985', 'facebook');
+        $this->assertEqual($post->favlike_count_cache, 27);
     }
 }

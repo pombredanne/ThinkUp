@@ -40,14 +40,56 @@ class TestOfOwner extends ThinkUpBasicUnitTestCase {
 
     public function testConstructor() {
         $complete_owner_values = array('id'=>10, "full_name"=>"ThinkUp J. User", "email"=>'tu_user@example.com',
-        'last_login'=>'1/1/2010', 'is_admin'=>0, 'is_activated'=>1, 'account_status'=>'', 'failed_logins'=>19);
+        'last_login'=>'1/1/2010', 'is_admin'=>0, 'is_activated'=>1, 'account_status'=>'', 'failed_logins'=>19,
+        'email_notification_frequency' => 'both'
+        );
 
         $owner = new Owner($complete_owner_values);
         $this->assertEqual($owner->id, 10);
         $this->assertEqual($owner->full_name, "ThinkUp J. User");
         $this->assertEqual($owner->email, 'tu_user@example.com');
         $this->assertEqual($owner->last_login, '1/1/2010');
+        $this->assertEqual($owner->email_notification_frequency, 'both');
         $this->assertFalse($owner->is_admin);
         $this->assertTrue($owner->is_activated);
+    }
+
+    public function testIsMember() {
+        $owner_values = array('id'=>10, "full_name"=>"ThinkUp J. User", "email"=>'tu_user@example.com',
+        'last_login'=>'1/1/2010', 'is_admin'=>0, 'is_activated'=>1, 'account_status'=>'', 'failed_logins'=>19,
+        'email_notification_frequency' => 'both', 'membership_level'=>null );
+
+        $owner = new Owner($owner_values);
+        $this->assertFalse($owner->isMemberAtAnyLevel());
+
+        $owner->membership_level = 'Member';
+        $this->assertTrue($owner->isMemberAtAnyLevel());
+        $this->assertTrue($owner->isMemberLevel());
+        $this->assertFalse($owner->isProLevel());
+
+        $owner->membership_level = 'Early Bird';
+        $this->assertTrue($owner->isMemberAtAnyLevel());
+        $this->assertTrue($owner->isMemberLevel());
+        $this->assertFalse($owner->isProLevel());
+
+        $owner->membership_level = 'Late Bird';
+        $this->assertTrue($owner->isMemberAtAnyLevel());
+        $this->assertTrue($owner->isMemberLevel());
+        $this->assertFalse($owner->isProLevel());
+
+        $owner->membership_level = 'Pro';
+        $this->assertTrue($owner->isMemberAtAnyLevel());
+        $this->assertFalse($owner->isMemberLevel());
+        $this->assertTrue($owner->isProLevel());
+
+        $owner->membership_level = 'Exec';
+        $this->assertTrue($owner->isMemberAtAnyLevel());
+        $this->assertFalse($owner->isMemberLevel());
+        $this->assertFalse($owner->isProLevel());
+
+        $owner->membership_level = 'pajamas';
+        $this->assertFalse($owner->isMemberAtAnyLevel());
+        $this->assertFalse($owner->isMemberLevel());
+        $this->assertFalse($owner->isProLevel());
     }
 }

@@ -28,7 +28,7 @@
  */
 class InsightMySQLDAO  extends PDODAO implements InsightDAO {
     public function getInsight($slug, $instance_id, $date) {
-        $q = "SELECT date, instance_id, slug, prefix, text, related_data, filename, emphasis ";
+        $q = "SELECT date, instance_id, slug, headline, text, related_data, filename, emphasis, header_image ";
         $q .= "FROM #prefix#insights WHERE ";
         $q .= "slug=:slug AND date=:date AND instance_id=:instance_id";
         $vars = array(
@@ -70,7 +70,7 @@ class InsightMySQLDAO  extends PDODAO implements InsightDAO {
     }
 
     public function doesInsightExist($slug, $instance_id) {
-        $q = "SELECT date, instance_id, slug, prefix, text, related_data, emphasis FROM #prefix#insights WHERE ";
+        $q = "SELECT date, instance_id, slug, headline, text, related_data, emphasis FROM #prefix#insights WHERE ";
         $q .= "slug=:slug AND instance_id=:instance_id";
         $vars = array(
             ':slug'=>$slug,
@@ -91,17 +91,18 @@ class InsightMySQLDAO  extends PDODAO implements InsightDAO {
         }
     }
 
-    public function insertInsight($slug, $instance_id, $date, $prefix, $text, $filename,
+    public function insertInsightDeprecated($slug, $instance_id, $date, $headline, $text, $filename,
     $emphasis=Insight::EMPHASIS_LOW, $related_data=null) {
         $insight = self::getInsight($slug, $instance_id, $date);
         if ($insight == null) {
             $q = "INSERT INTO #prefix#insights SET slug=:slug, date=:date, instance_id=:instance_id, ";
-            $q .= "prefix=:prefix, text=:text, filename=:filename, emphasis=:emphasis, related_data=:related_data";
+            $q .= "headline=:headline, text=:text, filename=:filename, emphasis=:emphasis, ";
+            $q .= "related_data=:related_data, time_generated='".date("Y-m-d H:i:s")."'";
             $vars = array(
             ':slug'=>$slug,
             ':date'=>$date,
             ':instance_id'=>$instance_id,
-            ':prefix'=>$prefix,
+            ':headline'=>$headline,
             ':text'=>$text,
             ':filename'=>$filename,
             ':emphasis'=>$emphasis,
@@ -112,7 +113,51 @@ class InsightMySQLDAO  extends PDODAO implements InsightDAO {
             $result = $this->getUpdateCount($ps);
             return ($result > 0);
         } else {
-            return self::updateInsight($slug, $instance_id, $date, $prefix, $text, $emphasis, $related_data);
+            return self::updateInsightDeprecated($slug, $instance_id, $date, $headline, $text, $emphasis,
+            $related_data);
+        }
+    }
+
+    public function insertInsight(Insight $insight) {
+        //If required fields are not set, throw an exception
+        $insight_fields = get_object_vars($insight);
+        foreach($insight_fields as $field=>$value) {
+            if ($field != 'header_image' && $field != 'related_data' && $field != 'id'
+                && $field != 'time_updated' && !isset($value)) {
+                throw new InsightFieldNotSetException("Insight ".$field ." is not set.");
+            }
+        }
+        if ($insight->related_data != null) {
+            $related_data_for_insert = serialize($insight->related_data);
+            if (strlen($related_data_for_insert) > 65535 ) {
+                throw new InsightFieldExceedsMaxLengthException("Insight's related data exceeds max length.");
+            }
+        } else {
+            $related_data_for_insert = null;
+        }
+        $existing_insight = self::getInsight($insight->slug, $insight->instance_id, $insight->date);
+        if ($existing_insight == null) {
+            $q = "INSERT INTO #prefix#insights SET slug=:slug, date=:date, instance_id=:instance_id, ";
+            $q .= "headline=:headline, text=:text, header_image=:header_image, filename=:filename, ";
+            $q .= "emphasis=:emphasis, related_data=:related_data, time_generated=:time_generated";
+            $vars = array(
+            ':slug'=>$insight->slug,
+            ':date'=>$insight->date,
+            ':instance_id'=>$insight->instance_id,
+            ':headline'=>$insight->headline,
+            ':text'=>$insight->text,
+            ':header_image'=>$insight->header_image,
+            ':filename'=>$insight->filename,
+            ':emphasis'=>$insight->emphasis,
+            ':related_data'=>$related_data_for_insert,
+            ':time_generated'=>$insight->time_generated
+            );
+            if ($this->profiler_enabled) { Profiler::setDAOMethod(__METHOD__); }
+            $ps = $this->execute($q, $vars);
+            $result = $this->getUpdateCount($ps);
+            return ($result > 0);
+        } else {
+            return self::updateInsight($insight);
         }
     }
 
@@ -150,18 +195,38 @@ class InsightMySQLDAO  extends PDODAO implements InsightDAO {
         return ($result > 0);
     }
 
-    public function updateInsight($slug, $instance_id, $date, $prefix, $text, $emphasis=Insight::EMPHASIS_LOW,
-    $related_data=null) {
-        $q = "UPDATE #prefix#insights SET prefix=:prefix, text=:text, related_data=:related_data, emphasis=:emphasis ";
-        $q .= "WHERE slug=:slug AND date=:date AND instance_id=:instance_id";
+    public function updateInsightDeprecated($slug, $instance_id, $date, $headline, $text,
+    $emphasis=Insight::EMPHASIS_LOW, $related_data=null) {
+        $q = "UPDATE #prefix#insights SET headline=:headline, text=:text, related_data=:related_data, ";
+        $q .= "emphasis=:emphasis WHERE slug=:slug AND date=:date AND instance_id=:instance_id";
         $vars = array(
             ':slug'=>$slug,
             ':date'=>$date,
             ':instance_id'=>$instance_id,
-            ':prefix'=>$prefix,
+            ':headline'=>$headline,
             ':text'=>$text,
             ':related_data'=>$related_data,
             ':emphasis'=>$emphasis
+        );
+        if ($this->profiler_enabled) { Profiler::setDAOMethod(__METHOD__); }
+        $ps = $this->execute($q, $vars);
+        $result = $this->getUpdateCount($ps);
+        return ($result > 0);
+    }
+
+    private function updateInsight(Insight $insight) {
+        $q = "UPDATE #prefix#insights SET headline=:headline, text=:text, related_data=:related_data, ";
+        $q .= "emphasis=:emphasis, header_image=:header_image ";
+        $q .= "WHERE slug=:slug AND date=:date AND instance_id=:instance_id";
+        $vars = array(
+            ':slug'=>$insight->slug,
+            ':date'=>$insight->date,
+            ':instance_id'=>$insight->instance_id,
+            ':headline'=>$insight->headline,
+            ':header_image'=>$insight->header_image,
+            ':text'=>$insight->text,
+            ':related_data'=>((isset($insight->related_data))?serialize($insight->related_data):null),
+            ':emphasis'=>$insight->emphasis
         );
         if ($this->profiler_enabled) { Profiler::setDAOMethod(__METHOD__); }
         $ps = $this->execute($q, $vars);
@@ -191,8 +256,8 @@ class InsightMySQLDAO  extends PDODAO implements InsightDAO {
         return self::getInsightsForInstances($page_count, $page_number, $public_only = false);
     }
 
-    public function getAllOwnerInstanceInsights($owner_id, $page_count=20, $page_number=1) {
-        $start_on_record = ($page_number - 1) * $page_count;
+    public function getAllOwnerInstanceInsights($owner_id, $page_count=20, $page_number=1, $page_count_offset=1) {
+        $start_on_record = ($page_number - 1) * ($page_count - $page_count_offset);
         $q = "SELECT i.*, i.id as insight_key, su.*, u.avatar FROM #prefix#insights i ";
         $q .= "INNER JOIN #prefix#instances su ON i.instance_id = su.id ";
         $q .= "INNER JOIN #prefix#owner_instances oi ON su.id = oi.instance_id ";
@@ -222,8 +287,9 @@ class InsightMySQLDAO  extends PDODAO implements InsightDAO {
         return $insights;
     }
 
-    private function getInsightsForInstances($page_count=10, $page_number=1, $public_only = true) {
-        $start_on_record = ($page_number - 1) * $page_count;
+    private function getInsightsForInstances($page_count=10, $page_number=1, $public_only = true,
+    $page_count_offset =1) {
+        $start_on_record = ($page_number - 1) * ($page_count - $page_count_offset);
         $q = "SELECT i.*, i.id as insight_key, su.*, u.avatar FROM #prefix#insights i ";
         $q .= "INNER JOIN #prefix#instances su ON i.instance_id = su.id ";
         $q .= "LEFT JOIN #prefix#users u ON (su.network_user_id = u.user_id AND su.network = u.network) ";
@@ -251,6 +317,30 @@ class InsightMySQLDAO  extends PDODAO implements InsightDAO {
             $insight->related_data = unserialize($insight->related_data);
             //assume insight came at same time of day as now for relative day notation
             $insight->date = $insight->date. " ".date('H').":".date('i');
+        }
+        return $insights;
+    }
+
+    public function getAllOwnerInstanceInsightsSince($owner_id, $since) {
+        $q = "SELECT i.*, i.id as insight_key, su.*, u.avatar FROM #prefix#insights i ";
+        $q .= "INNER JOIN #prefix#instances su ON i.instance_id = su.id ";
+        $q .= "INNER JOIN #prefix#owner_instances oi ON su.id = oi.instance_id ";
+        $q .= "LEFT JOIN #prefix#users u ON (su.network_user_id = u.user_id AND su.network = u.network) ";
+        $q .= "WHERE su.is_active = 1 AND oi.owner_id = :owner_id AND time_generated > :since ";
+        $q .= "AND i.filename != 'dashboard' ORDER BY date DESC, emphasis DESC, i.id;";
+        $vars = array(
+            ":owner_id"=>(int)$owner_id,
+            ':since'=>$since
+        );
+        if ($this->profiler_enabled) { Profiler::setDAOMethod(__METHOD__); }
+        $ps = $this->execute($q, $vars);
+        $rows = $this->getDataRowsAsArrays($ps);
+        $insights = array();
+        foreach ($rows as $row) {
+            $insight = new Insight($row);
+            $insight->instance = new Instance($row);
+            $insight->instance->avatar = $row['avatar'];
+            $insights[] = $insight;
         }
         return $insights;
     }

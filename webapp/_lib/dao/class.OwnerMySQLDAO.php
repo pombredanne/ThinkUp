@@ -46,7 +46,10 @@ SELECT
     password_token,
     account_status,
     failed_logins,
-    api_key
+    api_key,
+    email_notification_frequency,
+    membership_level,
+    timezone
 FROM #prefix#owners AS o
 WHERE email = :email;
 SQL;
@@ -61,7 +64,7 @@ SQL;
 
     public function getById($id) {
         $q = 'SELECT id,full_name,email,is_admin,last_login,is_activated,password_token,' .
-            'account_status,failed_logins,api_key ' .
+            'account_status,failed_logins,api_key,email_notification_frequency,timezone ' .
             'FROM #prefix#owners AS o WHERE id = :id';
         $vars = array(
             ':id'=>$id
@@ -72,7 +75,7 @@ SQL;
     }
 
     public function getAllOwners() {
-        $q = " SELECT id, full_name, email, is_admin, is_activated, last_login ";
+        $q = " SELECT id, full_name, email, is_admin, is_activated, last_login, email_notification_frequency ";
         $q .= "FROM #prefix#owners ORDER BY last_login DESC;";
         if ($this->profiler_enabled) { Profiler::setDAOMethod(__METHOD__); }
         $ps = $this->execute($q);
@@ -180,9 +183,12 @@ SQL;
             $pwd_salt = $this->generateSalt($email);
             $api_key = $this->generateAPIKey();
             $hashed_pwd = $this->hashPassword($pwd, $pwd_salt);
+            //By default an owner's timezone is the installation's timezone
+            $config = Config::getInstance();
+            $timezone = $config->getValue('timezone');
 
             $q = "INSERT INTO #prefix#owners SET email=:email, pwd=:hashed_pwd, pwd_salt=:pwd_salt, joined=NOW(), ";
-            $q .= "activation_code=:activation_code, full_name=:full_name, api_key=:api_key";
+            $q .= "activation_code=:activation_code, full_name=:full_name, api_key=:api_key, timezone=:timezone";
 
             if ($is_admin) {
                 $q .= ", is_admin=1";
@@ -193,7 +199,8 @@ SQL;
                 ':pwd_salt'=>$pwd_salt,
                 ':activation_code'=>$activation_code,
                 ':full_name'=>$full_name,
-                ':api_key'=>$api_key
+                ':api_key'=>$api_key,
+                ':timezone'=>$timezone
             );
             if ($this->profiler_enabled) { Profiler::setDAOMethod(__METHOD__); }
             $ps = $this->execute($q, $vars);
@@ -218,7 +225,7 @@ SQL;
               SET password_token=:token
               WHERE email=:email";
         $vars = array(
-            ":token" => $token, 
+            ":token" => $token,
             ":email" => $email
         );
         if ($this->profiler_enabled) { Profiler::setDAOMethod(__METHOD__); }
@@ -322,6 +329,16 @@ SQL;
         } else {
             return $new_api_key;
         }
+    }
+
+    public function setEmailNotificationFrequency($email, $email_notification_frequency) {
+        $q = "UPDATE #prefix#owners
+             SET email_notification_frequency=:email_notification_frequency
+             WHERE email=:email";
+        if ($this->profiler_enabled) { Profiler::setDAOMethod(__METHOD__); }
+        $stmt = $this->execute($q, array(':email_notification_frequency' => $email_notification_frequency,
+        ':email' => $email));
+        return $this->getUpdateCount($stmt);
     }
 
     /**
@@ -448,5 +465,34 @@ SQL;
             // Check if it matches the password stored in the database
             return ($hashed_pwd == $db_password);
         }
+    }
+
+    public function getPrivateAPIKey($email) {
+        $q = "SELECT api_key_private FROM #prefix#owners  WHERE email = :email AND is_activated='1' LIMIT 1;";
+        $vars = array(
+            ':email'=>$email
+        );
+        if ($this->profiler_enabled) { Profiler::setDAOMethod(__METHOD__); }
+        $ps = $this->execute($q, $vars);
+        $result = $this->getDataRowAsArray($ps);
+        if (!isset($result['api_key_private']) || $result['api_key_private'] == '') {
+            return false;
+        } else {
+            return $result['api_key_private'];
+        }
+    }
+
+    public function isOwnerAuthorizedViaPrivateAPIKey($email, $private_api_key) {
+        $db_private_api_key = $this->getPrivateAPIKey($email);
+        return ($db_private_api_key === $private_api_key);
+    }
+
+    public function setTimezone($email, $timezone) {
+        $q = "UPDATE #prefix#owners
+             SET timezone=:timezone
+             WHERE email=:email";
+        if ($this->profiler_enabled) { Profiler::setDAOMethod(__METHOD__); }
+        $stmt = $this->execute($q, array(':timezone' => $timezone, ':email' => $email));
+        return $this->getUpdateCount($stmt);
     }
 }

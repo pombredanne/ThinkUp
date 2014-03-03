@@ -212,10 +212,39 @@ class TestOfUtils extends ThinkUpUnitTestCase {
     public function testGetSiteRootPathFromFileSystem() {
         // function assumes $_SERVER['PHP_SELF'] is set
         // it only is in the web server context so we set it here to test
-        $_SERVER['PHP_SELF'] = Config::getInstance()->getValue('site_root_path');
+        $_SERVER['PHP_SELF'] = Config::getInstance()->getValue('site_root_path').'index.php';
         $filesystem_site_root_path = Utils::getSiteRootPathFromFileSystem();
         $cfg_site_root_path = Config::getInstance()->getValue('site_root_path');
         $this->assertEqual($filesystem_site_root_path, $cfg_site_root_path);
+
+        //API calls
+        $_SERVER['PHP_SELF'] = Config::getInstance()->getValue('site_root_path').'api/v1/session/login.php';
+        $filesystem_site_root_path = Utils::getSiteRootPathFromFileSystem();
+        $cfg_site_root_path = Config::getInstance()->getValue('site_root_path');
+        $this->assertEqual($filesystem_site_root_path, $cfg_site_root_path);
+    }
+
+    public function testGetApplicationHostName() {
+        //no $_SERVER vars set, but with application setting set
+        $builder = FixtureBuilder::build('options', array('namespace'=>'application_options',
+        'option_name'=>'server_name', 'option_value'=>'testservername') );
+        $host_name = Utils::getApplicationHostName();
+        $expected_host_name = 'testservername';
+        $this->assertEqual($host_name, $expected_host_name);
+
+        //SERVER_NAME, not HTTP_HOST
+        $_SERVER['HTTP_HOST'] = null;
+        $_SERVER['SERVER_NAME'] = 'mytestservername';
+        $host_name = Utils::getApplicationHostName();
+        $expected_host_name = 'mytestservername';
+        $this->assertEqual($host_name, $expected_host_name);
+
+        //HTTP_HOST, not SERVER_NAME
+        $_SERVER['HTTP_HOST'] = 'myothertestservername';
+        $_SERVER['SERVER_NAME'] = null;
+        $host_name = Utils::getApplicationHostName();
+        $expected_host_name = 'myothertestservername';
+        $this->assertEqual($host_name, $expected_host_name);
     }
 
     public function testGetApplicationURL() {

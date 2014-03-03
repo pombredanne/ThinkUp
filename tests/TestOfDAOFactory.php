@@ -271,12 +271,12 @@ class TestOfDAOFactory extends ThinkUpUnitTestCase {
     }
 
     /**
-     * Test get FollowerCountDAO
+     * Test get CountHistoryDAO
      */
-    public function testGetFollowerCountDAO() {
-        $plugin_dao = DAOFactory::getDAO('FollowerCountDAO');
+    public function testGetCountHistoryDAO() {
+        $plugin_dao = DAOFactory::getDAO('CountHistoryDAO');
         $this->assertNotNull($plugin_dao);
-        $this->assertIsA($plugin_dao, 'FollowerCountMySQLDAO');
+        $this->assertIsA($plugin_dao, 'CountHistoryMySQLDAO');
     }
 
     /**
@@ -358,12 +358,6 @@ class TestOfDAOFactory extends ThinkUpUnitTestCase {
         $this->assertIsA($dao, 'GroupMemberMySQLDAO');
     }
 
-    public function testGetGroupMembershipDAO() {
-        $dao = DAOFactory::getDAO('GroupMembershipCountDAO');
-        $this->assertNotNull($dao);
-        $this->assertIsA($dao, 'GroupMembershipCountMySQLDAO');
-    }
-
     public function testGetTableStatsDAO() {
         $dao = DAOFactory::getDAO('TableStatsDAO');
         $this->assertNotNull($dao);
@@ -387,6 +381,26 @@ class TestOfDAOFactory extends ThinkUpUnitTestCase {
         $this->assertNotNull($dao);
         $this->assertIsA($dao, 'InsightMySQLDAO');
     }
+
+    public function testVideoDAO() {
+        $dao = DAOFactory::getDAO('VideoDAO');
+        $this->assertNotNull($dao);
+        $this->assertIsA($dao, 'VideoMySQLDAO');
+    }
+
+    public function testPhotoDAO() {
+        $dao = DAOFactory::getDAO('PhotoDAO');
+        $this->assertNotNull($dao);
+        $this->assertIsA($dao, 'PhotoMySQLDAO');
+    }
+
+    public function testSessionDAO() {
+        $dao = DAOFactory::getDAO('SessionDAO');
+        $this->assertNotNull($dao);
+        $this->assertIsA($dao, 'SessionMySQLDAO');
+        $this->assertIsA($dao, 'SessionDAO');
+    }
+
     /**
      * Test get InstallerDAO without a config file, override with array of config values
      */
@@ -399,8 +413,8 @@ class TestOfDAOFactory extends ThinkUpUnitTestCase {
         $this->assertTrue(isset($dao));
         $this->assertIsA($dao, 'InstallerMySQLDAO');
         $result = $dao->getTables();
-        $this->assertEqual(sizeof($result), 32);
-        $this->assertEqual($result[0], $cfg_values["table_prefix"].'encoded_locations');
+        $this->assertEqual(sizeof($result), 34);
+        $this->assertEqual($result[0], $cfg_values["table_prefix"].'count_history');
         $this->restoreConfigFile();
     }
     /**

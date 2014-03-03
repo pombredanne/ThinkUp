@@ -43,19 +43,24 @@ class InsightStreamController extends ThinkUpController {
         $this->addToView('enable_bootstrap', true);
         $this->addToView('developer_log', $config->getValue('is_log_verbose'));
 
+        $this->addHeaderJavaScript('assets/js/d3.min.js');
+
         if ($this->shouldRefreshCache() ) {
             if (isset($_GET['u']) && isset($_GET['n']) && isset($_GET['d']) && isset($_GET['s'])) {
                 $this->displayIndividualInsight();
             } else {
                 if (!$this->displayPageOfInsights()) {
-                    $controller = new LoginController();
+                    $controller = new LoginController(true);
                     return $controller->go();
                 }
             }
             if ($this->isLoggedIn()) {
-                //Populate search dropdown with service users
+                //Populate search dropdown with service users and add thinkup_api_key for desktop notifications.
                 $owner_dao = DAOFactory::getDAO('OwnerDAO');
                 $owner = $owner_dao->getByEmail($this->getLoggedInUser());
+                $this->addToView('thinkup_api_key', $owner->api_key);
+                $this->addHeaderJavaScript('assets/js/notify-insights.js');
+
                 $instance_dao = DAOFactory::getDAO('InstanceDAO');
                 $instances = $instance_dao->getByOwner($owner);
                 $this->addToView('instances', $instances);

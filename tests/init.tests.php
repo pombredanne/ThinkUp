@@ -36,10 +36,6 @@ if ( !defined('THINKUP_WEBAPP_PATH') ) {
     define('THINKUP_WEBAPP_PATH', THINKUP_ROOT_PATH . 'webapp/');
 }
 
-if ( !defined('TESTS_RUNNING') ) {
-    define('TESTS_RUNNING', true);
-}
-
 //Register our lazy class loader
 require_once THINKUP_WEBAPP_PATH.'_lib/class.Loader.php';
 
@@ -56,5 +52,6 @@ THINKUP_WEBAPP_PATH . 'plugins/geoencoder/tests/',
 THINKUP_WEBAPP_PATH . 'plugins/hellothinkup/tests/',
 THINKUP_WEBAPP_PATH . 'plugins/googleplus/tests/',
 THINKUP_WEBAPP_PATH . 'plugins/foursquare/tests/',
-THINKUP_WEBAPP_PATH . 'plugins/insightsgenerator/tests/'
+THINKUP_WEBAPP_PATH . 'plugins/insightsgenerator/tests/',
+THINKUP_WEBAPP_PATH . 'plugins/youtube/tests/'
 ));

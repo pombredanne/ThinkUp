@@ -621,6 +621,26 @@ interface PostDAO {
     public function getAverageRetweetCount($username, $network, $last_x_days, $since=null);
 
     /**
+     * Get the average fave count over the last X days
+     * @param $username
+     * @param $network
+     * @param $last_x_days
+     * @param $since Date to calculate from defaults to today
+     * @return int Average retweet count over the last X days
+     */
+    public function getAverageFaveCount($username, $network, $last_x_days, $since=null);
+
+    /**
+     * Get the average reply count over the last X days
+     * @param $username
+     * @param $network
+     * @param $last_x_days
+     * @param $since Date to calculate from defaults to today
+     * @return int Average reply count over the last X days
+     */
+    public function getAverageReplyCount($username, $network, $last_x_days, $since=null);
+
+    /**
      * Get posts from this day in every year except this one that aren't replies or reshares/retweets.
      * @param str $author_id
      * @param str $network
@@ -682,6 +702,24 @@ interface PostDAO {
      */
     public function doesUserHavePostsWithRetweetsSinceDate($author_username, $network, $last_x_days, $since=null);
 
+    /** Check if user has any posts with faves on or before since_date minus last_x_days
+     * @param str $author_username
+     * @param str $network
+     * @param int $last_x_days
+     * @param str $since Date in Y-m-d format
+     * @return bool
+     */
+    public function doesUserHavePostsWithFavesSinceDate($author_username, $network, $last_x_days, $since=null);
+
+    /** Check if user has any posts with replies on or before since_date minus last_x_days
+     * @param str $author_username
+     * @param str $network
+     * @param int $last_x_days
+     * @param str $since Date in Y-m-d format
+     * @return bool
+     */
+    public function doesUserHavePostsWithRepliesSinceDate($author_username, $network, $last_x_days, $since=null);
+
     /**
      * Get users who have have retweeted a specified post and have a higher follower count than a given threshold.
      * @param unknown_type $post_id
@@ -690,6 +728,24 @@ interface PostDAO {
      * @return array User
      */
     public function getRetweetsByAuthorsOverFollowerCount($post_id, $network, $follower_count_threshold);
+
+    /**
+     * Get the number of days since a user last replied to a specified recipient.
+     * @param int $user_id
+     * @param int $recipient_id
+     * @param str $network
+     * @return int
+     */
+    public function getDaysAgoSinceUserRepliedToRecipient($user_id, $recipient_id, $network);
+
+    /**
+     * Get the total number of posts by a user.
+     * @param int $author_id
+     * @param str $network
+     * @param int $days_ago
+     * @return int posts count
+     */
+    public function countAllPostsByUserSinceDaysAgo($author_id, $network, $days_ago=7);
 
     /**
      * Search a service users's posts.

@@ -25,7 +25,7 @@
                         {/if}
                     {/foreach}
                     {foreach from=$saved_searches key=tid item=i}
-                        <li class="lead"><a onclick="searchMe('{$site_root_path}search.php?u={$i.network_username|urlencode}&n=twitter&c=searches&k={$i.hashtag}&q=');" href="#"><i class="icon-twitter icon-muted icon-2x"></i> Search tweets which contain {$i.hashtag} for <span class="searchterm"></span></a></li>
+                        <li class="lead"><a onclick="searchMe('{$site_root_path}search.php?u={$i.network_username|urlencode}&n=twitter&c=searches&k={$i.hashtag|urlencode}&q=');" href="#"><i class="icon-twitter icon-muted icon-2x"></i> Search tweets which contain {$i.hashtag} for <span class="searchterm"></span></a></li>
                     {/foreach}
                     </ul>
 
@@ -41,7 +41,8 @@
 <ul class="nav pull-right" style="border-left : none;">
 
     {if $user_is_admin}<li><script src="{$site_root_path}install/checkversion.php"></script></li>{/if}
-    <li><a href="{$site_root_path}crawler/updatenow.php{if $developer_log}?log=full{/if}" id="refresh-data"><i class="icon-refresh"></i></a></li>
+    <li><a href="#" id="notify-insights" title="Enable desktop notifications of new insights!" style="display:none;"><i class="icon-bell"></i></a></li>
+    <li><a href="{$site_root_path}crawler/updatenow.php{if $developer_log}?log=full{/if}" id="refresh-data" title="Refresh data"><i class="icon-refresh"></i></a></li>
 
     <li class="dropdown">
         <a href="#" class="dropdown-toggle hidden-phone" data-toggle="dropdown">

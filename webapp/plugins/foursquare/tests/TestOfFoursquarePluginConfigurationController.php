@@ -25,7 +25,7 @@
  * @license http://www.gnu.org/licenses/gpl.html
  * @copyright 2012-2013 Aaron Kalair
  */
-require_once 'tests/init.tests.php';
+require_once dirname(__FILE__) . '/../../../../tests/init.tests.php';
 require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
 require_once THINKUP_ROOT_PATH.'webapp/config.inc.php';
 require_once THINKUP_ROOT_PATH.'tests/classes/class.ThinkUpBasicUnitTestCase.php';
@@ -109,7 +109,7 @@ class TestOfFoursquarePluginConfigurationController extends ThinkUpUnitTestCase 
 
     public function testConstructor() {
         // Create a new controller
-        $controller = new FoursquarePluginConfigurationController("me@example.com");
+        $controller = new FoursquarePluginConfigurationController(null);
         // Check the controller was created
         $this->assertNotNull($controller);
         // Check the controller is of type foursquare

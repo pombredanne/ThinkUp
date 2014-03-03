@@ -64,7 +64,8 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
 
         $builders[] = FixtureBuilder::build('owners', array('id'=>1, 'full_name'=>'ThinkUp J. User',
         'email'=>'me@example.com', 'is_activated'=>1, 'pwd'=>$hashed_pass,
-        'pwd_salt'=> OwnerMySQLDAO::$default_salt, 'api_key' => 'c9089f3c9adaf0186f6ffb1ee8d6501c'));
+        'pwd_salt'=> OwnerMySQLDAO::$default_salt, 'api_key' => 'c9089f3c9adaf0186f6ffb1ee8d6501c',
+        'email_notification_frequency' => 'daily', 'timezone'=>'UTC'));
 
         $builders[] = FixtureBuilder::build('owners', array('id'=>2, 'full_name'=>'ThinkUp J. Admin',
         'email'=>'admin@example.com', 'is_activated'=>1, 'is_admin'=>1));
@@ -360,7 +361,7 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         //test if view variables were set correctly
         $v_mgr = $controller->getViewManager();
         $this->assertIsA($v_mgr->getTemplateDataItem('installed_plugins'), 'array');
-        $this->assertEqual(sizeof($v_mgr->getTemplateDataItem('installed_plugins')), 9);
+        $this->assertTrue(sizeof($v_mgr->getTemplateDataItem('installed_plugins')) >= 9);
 
         $owner = $v_mgr->getTemplateDataItem('owner');
         $this->assertIsA($owner, 'Owner');
@@ -385,7 +386,7 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         //test if view variables were set correctly
         $v_mgr = $controller->getViewManager();
         $this->assertIsA($v_mgr->getTemplateDataItem('installed_plugins'), 'array');
-        $this->assertEqual(sizeof($v_mgr->getTemplateDataItem('installed_plugins')), 9);
+        $this->assertTrue(sizeof($v_mgr->getTemplateDataItem('installed_plugins')) >= 9);
 
         $owner = $v_mgr->getTemplateDataItem('owner');
         $this->assertIsA($owner, 'Owner');
@@ -394,6 +395,7 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         $this->assertEqual($owner->email, 'admin@example.com');
         $this->assertIsA($v_mgr->getTemplateDataItem('owners'), 'array');
         $this->assertEqual(sizeof($v_mgr->getTemplateDataItem('owners')), 2);
+        $this->assertTrue($v_mgr->getTemplateDataItem('installed_plugins'));
 
         //not set: owners, body, success_msg, error_msg
         $this->assertTrue(!$v_mgr->getTemplateDataItem('body'));
@@ -418,12 +420,12 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         $this->assertEqual($owner->full_name, 'ThinkUp J. User');
         $this->assertEqual($owner->email, 'me@example.com');
         $this->assertTrue($v_mgr->getTemplateDataItem('body'));
+        $this->assertTrue($v_mgr->getTemplateDataItem('installed_plugins'));
 
-        //not set: owners, body, success_msg, error_msg
+        //not set: owners, success_msg, error_msg
         $this->assertTrue(!$v_mgr->getTemplateDataItem('owners'));
         $this->assertTrue(!$v_mgr->getTemplateDataItem('success_msg'));
         $this->assertTrue(!$v_mgr->getTemplateDataItem('error_msg'));
-        $this->assertTrue(!$v_mgr->getTemplateDataItem('installed_plugins'));
     }
 
     public function testAuthControlLoggedInSpecificPluginDoesNotExist() {
@@ -484,7 +486,7 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         //test if view variables were set correctly
         $v_mgr = $controller->getViewManager();
         $this->assertIsA($v_mgr->getTemplateDataItem('installed_plugins'), 'array');
-        $this->assertEqual(sizeof($v_mgr->getTemplateDataItem('installed_plugins')), 9);
+        $this->assertTrue(sizeof($v_mgr->getTemplateDataItem('installed_plugins')) >= 9);
 
         $owner = $v_mgr->getTemplateDataItem('owner');
         $this->assertIsA($owner, 'Owner');
@@ -521,7 +523,7 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         //test if view variables were set correctly
         $v_mgr = $controller->getViewManager();
         $this->assertIsA($v_mgr->getTemplateDataItem('installed_plugins'), 'array');
-        $this->assertEqual(sizeof($v_mgr->getTemplateDataItem('installed_plugins')), 9);
+        $this->assertTrue(sizeof($v_mgr->getTemplateDataItem('installed_plugins')) >= 9);
 
         $owner = $v_mgr->getTemplateDataItem('owner');
         $this->assertIsA($owner, 'Owner');
@@ -552,7 +554,7 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         //test if view variables were set correctly
         $v_mgr = $controller->getViewManager();
         $this->assertIsA($v_mgr->getTemplateDataItem('installed_plugins'), 'array');
-        $this->assertEqual(sizeof($v_mgr->getTemplateDataItem('installed_plugins')), 9);
+        $this->assertTrue(sizeof($v_mgr->getTemplateDataItem('installed_plugins')) >= 9);
 
         $owner = $v_mgr->getTemplateDataItem('owner');
         $this->assertIsA($owner, 'Owner');
@@ -583,7 +585,7 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         //test if view variables were set correctly
         $v_mgr = $controller->getViewManager();
         $this->assertIsA($v_mgr->getTemplateDataItem('installed_plugins'), 'array');
-        $this->assertEqual(sizeof($v_mgr->getTemplateDataItem('installed_plugins')), 9);
+        $this->assertTrue(sizeof($v_mgr->getTemplateDataItem('installed_plugins')) >= 9);
 
         $owner = $v_mgr->getTemplateDataItem('owner');
         $this->assertIsA($owner, 'Owner');
@@ -615,7 +617,7 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         //test if view variables were set correctly
         $v_mgr = $controller->getViewManager();
         $this->assertIsA($v_mgr->getTemplateDataItem('installed_plugins'), 'array');
-        $this->assertEqual(sizeof($v_mgr->getTemplateDataItem('installed_plugins')), 9);
+        $this->assertTrue(sizeof($v_mgr->getTemplateDataItem('installed_plugins')) >= 9);
 
         $owner = $v_mgr->getTemplateDataItem('owner');
         $this->assertIsA($owner, 'Owner');
@@ -648,7 +650,7 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         //test if view variables were set correctly
         $v_mgr = $controller->getViewManager();
         $this->assertIsA($v_mgr->getTemplateDataItem('installed_plugins'), 'array');
-        $this->assertEqual(sizeof($v_mgr->getTemplateDataItem('installed_plugins')), 9);
+        $this->assertTrue(sizeof($v_mgr->getTemplateDataItem('installed_plugins')) >= 9);
 
         $owner = $v_mgr->getTemplateDataItem('owner');
         $this->assertIsA($owner, 'Owner');
@@ -735,7 +737,7 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         //test if view variables were set correctly
         $v_mgr = $controller->getViewManager();
         $this->assertIsA($v_mgr->getTemplateDataItem('installed_plugins'), 'array');
-        $this->assertEqual(sizeof($v_mgr->getTemplateDataItem('installed_plugins')), 9);
+        $this->assertTrue(sizeof($v_mgr->getTemplateDataItem('installed_plugins')) >= 9);
 
         $owner = $v_mgr->getTemplateDataItem('owner');
         $this->assertIsA($owner, 'Owner');
@@ -797,6 +799,92 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         '/crawler\/rss.php\?un=me153\%2Bcheckurlencoding%40example.com&as=c9089f3c9adaf0186f6ffb1ee8d6501c/', $result);
     }
 
+    public function testAuthControlLoggedInChangeNotificationFrequency() {
+        $owner_dao = new OwnerMySQLDAO();
+        $owner = $owner_dao->getByEmail('me@example.com');
+        $this->assertEqual('daily', $owner->email_notification_frequency);
+
+        $this->simulateLogin('me@example.com', false, true);
+        $controller = new AccountConfigurationController(true);
+        $output = $controller->go();
+        $this->assertPattern('/"daily"[^>]*selected/', $output);
+        $this->assertNoPattern('/"both"[^>]*selected/', $output);
+
+        $this->simulateLogin('me@example.com', false, true);
+        $_POST['updatefrequency'] = 'Update Frequency';
+        $_POST['notificationfrequency'] = 'both';
+        $controller = new AccountConfigurationController(true);
+        $controller->go();
+        $owner = $owner_dao->getByEmail('me@example.com');
+        // No CSRF shouldn't update
+        $this->assertNotEqual('both', $owner->email_notification_frequency);
+
+        $this->simulateLogin('me@example.com', false, true);
+        $_POST['updatefrequency'] = 'Update Frequency';
+        $_POST['notificationfrequency'] = 'bananas';
+        $_POST['csrf_token'] = parent::CSRF_TOKEN;
+
+        $controller = new AccountConfigurationController(true);
+        $output = $controller->go();
+        $owner = $owner_dao->getByEmail('me@example.com');
+        // bad value, shouldn't update
+        $this->assertNotEqual('bananas', $owner->email_notification_frequency);
+        $this->assertEqual('daily', $owner->email_notification_frequency);
+        $this->assertNoPattern('/email notification frequency has been updated/', $output);
+
+        $this->simulateLogin('me@example.com', false, true);
+        $_POST['updatefrequency'] = 'Update Frequency';
+        $_POST['notificationfrequency'] = 'both';
+        $_POST['csrf_token'] = parent::CSRF_TOKEN;
+        $controller = new AccountConfigurationController(true);
+        $output = $controller->go();
+        $owner = $owner_dao->getByEmail('me@example.com');
+        $this->assertNotEqual('daily', $owner->email_notification_frequency);
+        $this->assertEqual('both', $owner->email_notification_frequency);
+        $this->assertNoPattern('/"daily"[^>]*selected/', $output);
+        $this->assertPattern('/"both"[^>]*selected/', $output);
+        $this->assertPattern('/email notification frequency has been updated/', $output);
+    }
+
+    public function testAuthControlLoggedInTimeZone() {
+        $owner_dao = new OwnerMySQLDAO();
+        $owner = $owner_dao->getByEmail('me@example.com');
+        $this->assertEqual('UTC', $owner->timezone);
+
+        $this->simulateLogin('me@example.com', false, true);
+        $_POST['updatetimezone'] = 'Update Time Zone';
+        $_POST['timezone'] = 'America/New_York';
+        $controller = new AccountConfigurationController(true);
+        $controller->go();
+        $owner = $owner_dao->getByEmail('me@example.com');
+        // No CSRF shouldn't update
+        $this->assertNotEqual('America/NewYork', $owner->timezone);
+
+        $this->simulateLogin('me@example.com', false, true);
+        $_POST['updatetimezone'] = 'Update Time Zone';
+        $_POST['timezone'] = 'bananas';
+        $_POST['csrf_token'] = parent::CSRF_TOKEN;
+
+        $controller = new AccountConfigurationController(true);
+        $output = $controller->go();
+        $owner = $owner_dao->getByEmail('me@example.com');
+        // bad value, shouldn't update
+        $this->assertNotEqual('bananas', $owner->timezone);
+        $this->assertEqual('UTC', $owner->timezone);
+        $this->assertNoPattern('/time zone has been saved/', $output);
+
+        $this->simulateLogin('me@example.com', false, true);
+        $_POST['updatetimezone'] = 'Update Time Zone';
+        $_POST['timezone'] = 'America/New_York';
+        $_POST['csrf_token'] = parent::CSRF_TOKEN;
+        $controller = new AccountConfigurationController(true);
+        $output = $controller->go();
+        $owner = $owner_dao->getByEmail('me@example.com');
+        $this->assertNotEqual('UTC', $owner->timezone);
+        $this->assertEqual('America/New_York', $owner->timezone);
+        $this->assertPattern('/time zone has been saved/', $output);
+    }
+
     private function buildRSSData() {
         $builders[] = FixtureBuilder::build('owners', array(
             'id' => 152,
@@ -834,7 +922,8 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         $_POST['csrf_token'] = parent::CSRF_TOKEN;
 
         $controller = new AccountConfigurationController(true);
-        $controller->go();
+        $results = $controller->go();
+        $this->debug($results);
 
         $hashtag = $hashtag_dao->getHashtag($_POST['new_hashtag_name'], 'twitter');
         $this->assertNotNull($hashtag);
@@ -1362,6 +1451,21 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         $this->assertNull($v_mgr->getTemplateDataItem('error_msg'));
     }
 
+    public function testPluginShownWhenPSet() {
+        $this->simulateLogin('admin@example.com', true, true);
+        $_GET['p'] = "twitter";
+        $controller = new AccountConfigurationController(true);
+        $controller->go();
+        $v_mgr = $controller->getViewManager();
+        $this->assertTrue($v_mgr->getTemplateDataItem('force_plugin'));
+
+        $_GET = array();
+        $controller = new AccountConfigurationController(true);
+        $controller->go();
+        $v_mgr = $controller->getViewManager();
+        $this->assertNull($v_mgr->getTemplateDataItem('force_plugin'));
+    }
+
     private function buildHashtagData($instance) {
         $builders = array();
 
@@ -1370,11 +1474,9 @@ class TestOfAccountConfigurationController extends ThinkUpUnitTestCase {
         $builders[] = FixtureBuilder::build('hashtags',
         array('hashtag' => 'second', 'network' => 'twitter', 'count_cache' => 0));
         $builders[] = FixtureBuilder::build('instances_hashtags',
-        array('instance_id' => $instance, 'hashtag_id' => 1, 'last_post_id' => '0', 'earliest_post_id' => 0,
-        'last_page_fetched_tweets' => 1));
+        array('instance_id' => $instance, 'hashtag_id' => 1, 'last_post_id' => '0', 'earliest_post_id' => 0));
         $builders[] = FixtureBuilder::build('instances_hashtags',
-        array('instance_id' => $instance, 'hashtag_id' => 2, 'last_post_id' => '0', 'earliest_post_id' => 0,
-        'last_page_fetched_tweets' => 1));
+        array('instance_id' => $instance, 'hashtag_id' => 2, 'last_post_id' => '0', 'earliest_post_id' => 0));
         $builders[] = FixtureBuilder::build('hashtags_posts',
         array('post_id' => 1, 'hashtag_id' => 1, 'network' => 'twitter'));
         $builders[] = FixtureBuilder::build('hashtags_posts',

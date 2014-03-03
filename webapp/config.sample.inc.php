@@ -22,6 +22,9 @@ $THINKUP_CFG['timezone']                  = 'UTC';
 
 // Toggle Smarty caching. true: Smarty caching on, false: Smarty caching off
 $THINKUP_CFG['cache_pages']               = true;
+//
+// Should sessions be stored in the database?  (As opposed to the php default files)
+$THINKUP_CFG['use_db_sessions']               = true;
 
 // Smarty file cache lifetime in seconds; defaults to 600 (10 minutes) caching
 $THINKUP_CFG['cache_lifetime']               = 600;
@@ -29,6 +32,10 @@ $THINKUP_CFG['cache_lifetime']               = 600;
 // The crawler, when triggered by requests to the RSS feed, will only launch if it's been
 // 20 minutes or more since the last crawl.
 $THINKUP_CFG['rss_crawler_refresh_rate']  = 20;
+
+// Optional Mandrill API key. Set this to a valid key to send email via Mandrill instead of PHP's mail() function..
+// Get key at https://mandrillapp.com/settings/ in "SMTP & API Credentials"
+$THINKUP_CFG['mandrill_api_key'] = '';
 
 /************************************************/
 /***  DATABASE CONFIG                         ***/
@@ -74,7 +81,7 @@ $THINKUP_CFG['enable_profiler']           = false;
 $THINKUP_CFG['set_pdo_charset']           = false;
 
 //TESTS OVERRIDE: Assign variables below to use different settings during test builds
-if ((isset($_SESSION["MODE"]) && $_SESSION["MODE"] == "TESTS") && ! isset($_SESSION["RD_MODE"])
+if ((isset($_COOKIE['TU_MODE']) && $_COOKIE['TU_MODE']=='TESTS') && ! isset($_SESSION["RD_MODE"])
 || (getenv("MODE")=="TESTS" && ! getenv("RD_MODE")=="1")) {
     //    $THINKUP_CFG['source_root_path']          = '/your-server-path-to/thinkup/';
     //    $THINKUP_CFG['db_user']                   = 'your_test_database_username';

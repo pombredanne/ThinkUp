@@ -42,14 +42,14 @@
                             </td>
                             <td>
                                 <p class="lead" style="padding-left: 0px; margin : 0px;">
-                                <a href="?p={$ip->folder_name|get_plugin_path}"><span id="spanpluginnamelink{$ip->id}">{$ip->name}</span></a>
+                                <a href="?p={$ip->folder_name|get_plugin_path}#manage_plugin" class="manage_plugin"><span id="spanpluginnamelink{$ip->id}">{$ip->name}</span></a>
                                 </p>
                                 <span class="muted">{$ip->description}</span>
                             </td>
                     {if $user_is_admin}
                       <td class="action-button">
                       <span id="spanpluginactivation{$ip->id}" style="margin-top : 4px;">
-                          <a href="{$site_root_path}account/?p={$ip->folder_name|get_plugin_path}" class="btn {if !$ip->isConfigured()}btn-primary{/if}">{if $ip->isConfigured()} <i class="icon-cog "></i> Configure{else}<i class="icon-warning-sign"></i> Set Up{/if}</a>
+                          <a href="{$site_root_path}account/?p={$ip->folder_name|get_plugin_path}#manage_plugin" class="manage_plugin btn {if !$ip->isConfigured()}btn-primary{/if}">{if $ip->isConfigured()} <i class="icon-cog "></i> Configure{else}<i class="icon-warning-sign"></i> Set Up{/if}</a>
                       </span>
                       <span style="display: none;" class='linkbutton' id="messageactive{$ip->id}"></span>
                       </td>
@@ -58,13 +58,15 @@
                   {/if}
                 {/foreach}
                     </table>
-              {else}
-                <a href="?m=manage" class="btn btn-mini"><i class="icon-chevron-left icon-muted"></i> Back to plugins</a>
               {/if}
+        </div> <!-- end #plugins -->
+
+        <div class="section" id="manage_plugin" {if $body}style="display: block"{/if}>
+            <a href="?m=manage" class="btn btn-mini"><i class="icon-chevron-left icon-muted"></i> Back to plugins</a>
             {if $body}
               {$body}
             {/if}
-        </div> <!-- end #plugins -->
+        </div>
 
         {if $user_is_admin}
         <div class="section thinkup-canvas clearfix" id="app_settings">
@@ -142,6 +144,69 @@
             </div>
           </form>
     <br><br>
+    {include file="_usermessage.tpl" field='notifications'}
+    <h3><i class="icon-calendar icon-muted"></i> Notification Frequency</h3><br />
+    <form name="setEmailNotificationFrequency" id="setEmailNotificationFrequency" class="form-horizontal" method="post" action="index.php?m=manage#instances">
+        <div class="control-group">
+           <label class="control-label" for="update_notification_frequency">Get insights via email:</label>
+           <div class="controls">
+             <select name="notificationfrequency">
+             {foreach from=$notification_options item=description key=key}
+                 <option value="{$key}" {if $key eq $owner->email_notification_frequency}selected="selected"{/if}>{$description}</option>
+             {/foreach}
+             </select>
+          </div>
+        </div>
+        <div class="control-group">
+          <div class="controls">
+            {insert name="csrf_token"}
+            <input type="submit" name="updatefrequency" value="Save" class="btn btn-primary">
+          </div>
+         </div>
+    </form>
+    <br><br>
+
+
+    {include file="_usermessage.tpl" field='timezone'}
+     <form name="setTimezone" id="setTimezone" class="form-horizontal" method="post" action="index.php?m=manage#instances">
+         <div class="control-group">
+            <label class="control-label" for="update_timezone">Your Time Zone:</label>
+            <div class="controls">
+              <select name="timezone" id="timezone">
+              <option value=""{if $owner->timezone eq 'UTC'} selected{/if}>Select a time zone:</option>
+                {foreach from=$tz_list key=group_name item=group}
+                  <optgroup label='{$group_name}'>
+                    {foreach from=$group item=tz}
+                      <option id="tz-{$tz.display}" value='{$tz.val}'{if $owner->timezone eq $tz.val} selected{/if}>{$tz.display}</option>
+                    {/foreach}
+                  </optgroup>
+                {/foreach}
+              </select>
+              {if $owner->timezone eq 'UTC'}
+              <script type="text/javascript">
+              {literal}
+              var tz_info = jstz.determine();
+              var regionname = tz_info.name().split('/');
+              var tz_option_id = '#tz-' + regionname[1];
+              if( $('#timezone option[value="' + tz_info.name() + '"]').length > 0) {
+                  if( $(tz_option_id) ) {
+                      $('#timezone').val( tz_info.name());
+                  }
+              }
+              {/literal}
+              </script>
+              {/if}
+           </div>
+         </div>
+         <div class="control-group">
+           <div class="controls">
+             {insert name="csrf_token"}
+             <input type="submit" name="updatetimezone" value="Save" class="btn btn-primary">
+           </div>
+          </div>
+     </form>
+     <br><br>
+
     <span class="pull-right">{insert name="help_link" id='rss'}</span>
     <h3><i class="icon-refresh icon-muted"></i> Automate ThinkUp Data Capture</h3><br />
     
@@ -282,6 +347,7 @@
 </div>
 
 <script type="text/javascript">
+  var show_plugin = {if $force_plugin}true{else}false{/if};
   {literal}
 $(function() {
     $(".btnPub").click(function() {
@@ -490,6 +556,21 @@ $(function() {
         demoteOwner($(this).attr("id"));
       }
     });
+
+    $('.manage_plugin').click(function (e) {
+      var url = $(this).attr('href');
+      var p = url.replace(/.*p=/, '').replace(/#.*/, '');;
+      if (window.location.href.indexOf("="+p) >= 0) {
+        $('.section').hide();
+        $('#manage_plugin').show();
+        e.preventDefault();
+      }
+    });
+    if ((show_plugin && (!window.location.hash || window.location.hash == '' || window.location.hash == '#_=_' ))
+    || (window.location.hash && window.location.hash == '#manage_plugin')) {
+      $('.section').hide();
+      $('#manage_plugin').show();
+    }
 
   });
 

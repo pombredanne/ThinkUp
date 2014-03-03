@@ -29,7 +29,7 @@
  * @license http://www.gnu.org/licenses/gpl.html
  * @copyright 2012-2013 Aaron Kalair
  */
-require_once 'tests/init.tests.php';
+require_once dirname(__FILE__) . '/../../../../tests/init.tests.php';
 require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/autorun.php';
 require_once THINKUP_ROOT_PATH.'webapp/_lib/extlib/simpletest/web_tester.php';
 require_once THINKUP_ROOT_PATH.'webapp/plugins/foursquare/model/class.FoursquareCrawler.php';
@@ -59,8 +59,8 @@ class TestOfFoursquareCrawler extends ThinkUpUnitTestCase {
         $this->logger = Logger::getInstance();
         // Create an array with instance details
         $r = array('id'=>1, 'network_username'=>'aaronkalair@gmail.com', 'network_user_id'=>'113612142759476883204',
-        'network_viewer_id'=>'113612142759476883204', 'last_post_id'=>'0', 'last_page_fetched_replies'=>0,
-        'last_page_fetched_tweets'=>'0', 'total_posts_in_system'=>'0', 'total_replies_in_system'=>'0',
+        'network_viewer_id'=>'113612142759476883204', 'last_post_id'=>'0',
+        'total_posts_in_system'=>'0', 'total_replies_in_system'=>'0',
         'total_follows_in_system'=>'0', 'is_archive_loaded_replies'=>'0',
         'is_archive_loaded_follows'=>'0', 'crawler_last_run'=>'', 'earliest_reply_in_system'=>'',
         'avg_replies_per_day'=>'0', 'is_public'=>'0', 'is_active'=>'0', 'network'=>'foursquare',

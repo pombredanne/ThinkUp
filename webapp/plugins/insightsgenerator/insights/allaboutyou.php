@@ -1,7 +1,8 @@
 <?php
 /*
  Plugin Name: All About You
- Description: How many times posts contained the words "I", "me", "my", "myself" or "mine" in the past week. (Sundays)
+ Description: How often you referred to yourself ("I", "me", "myself", "my") in the past week.
+ When: Sundays
  */
 
 /**
@@ -35,16 +36,17 @@ class AllAboutYouInsight extends InsightPluginParent implements InsightPlugin {
         parent::generateInsight($instance, $last_week_of_posts, $number_days);
         $this->logger->logInfo("Begin generating insight", __METHOD__.','.__LINE__);
 
-        $in_test_mode =  ((isset($_SESSION["MODE"]) && $_SESSION["MODE"] == "TESTS") || getenv("MODE")=="TESTS");
-        if (date('w') == 0 || $in_test_mode) { //Sunday
+        if (self::shouldGenerateInsight('all_about_you', $instance, $insight_date='today',
+        $regenerate_existing_insight=false, $day_of_week=0, count($last_week_of_posts))) {
             $text = '';
             $count = 0;
             foreach ($last_week_of_posts as $post) {
                 $count += self::countFirstPersonReferences($post->post_text);
             }
             if ($count > 1) {
-                $text = "$this->username's posts contained the words \"I\", \"me\", \"my\", \"mine\", or \"myself\"".
-                " <strong>" .$count. ' times</strong> in the last week';
+                $text = "$this->username's ".$this->terms->getNoun('post', (count($last_week_of_posts) > 1))
+                ." contained the words \"I\", \"me\", \"my\", \"mine\", or \"myself\" "
+                ."<strong>".$count." times</strong> in the last week";
 
                 $insight_baseline_dao = DAOFactory::getDAO('InsightBaselineDAO');
                 $insight_baseline_dao->insertInsightBaseline("all_about_you", $instance->id, $count,
@@ -69,10 +71,11 @@ class AllAboutYouInsight extends InsightPluginParent implements InsightPlugin {
                 } else {
                     $text .= ".";
                 }
-                $this->insight_dao->insertInsight("all_about_you", $instance->id, $this->insight_date, "All about you:",
-                $text, basename(__FILE__, ".php"), Insight::EMPHASIS_LOW);
+                $this->insight_dao->insertInsightDeprecated("all_about_you", $instance->id, $this->insight_date,
+                "All about you:", $text, basename(__FILE__, ".php"), Insight::EMPHASIS_LOW);
             }
         }
+
         $this->logger->logInfo("Done generating insight", __METHOD__.','.__LINE__);
     }
 

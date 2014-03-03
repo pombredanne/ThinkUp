@@ -199,13 +199,13 @@ class TestOfSearchController extends ThinkUpUnitTestCase {
         $controller = new SearchController(true);
         $this->assertTrue(isset($controller));
         $results = $controller->go();
+        $this->debug($results);
         $this->assertNoPattern('/No posts found/', $results);
         $this->assertNoPattern('/Whoops! That user doesn&#39;t exist. Please try again./',$results);
         $this->assertNoPattern('/Uh-oh. #totssomtv3 is not a saved search. Please try again./',$results);
-        $this->assertPattern('/Demà treballadors de TV3 donarem sang #lasangdelatele #totssomtv3/',$results);
-        $this->assertNoPattern('/El comitè d’empresa de TV3 acusa la direcció de la CCMA de populista/',$results);
+        $this->assertPattern('/Dem treballadors de TV3 donarem sang #lasangdelatele #totssomtv3/',$results);
+        $this->assertNoPattern('/El comit dempresa de TV3 acusa la direcci de la CCMA de populista/',$results);
         $this->assertNoPattern('/El Chelsea quiere a Mourinho YA #efectivament/',$results);
-        $this->assertNoPattern('/El comitè d’empresa de TV3 acusa la direcció de populista/',$results);
         $this->assertNoPattern('/Whoops! You don&#39;t have access to that user. Please try again./',$results);
 
         //Keyword being searched
@@ -215,13 +215,13 @@ class TestOfSearchController extends ThinkUpUnitTestCase {
         $controller = new SearchController(true);
         $this->assertTrue(isset($controller));
         $results = $controller->go();
+        $this->debug($results);
         $this->assertNoPattern('/No posts found/', $results);
         $this->assertNoPattern('/Whoops! That user doesn&#39;t exist. Please try again./',$results);
         $this->assertNoPattern('/Uh-oh. Keyword CCMA is not being searched. Please try again./',$results);
-        $this->assertNoPattern('/Demà treballadors de TV3 donarem sang #lasangdelatele #totssomtv3/',$results);
-        $this->assertPattern('/El comitè d’empresa de TV3 acusa la direcció de la CCMA de populista/',$results);
+        $this->assertNoPattern('/Dem treballadors de TV3 donarem sang #lasangdelatele #totssomtv3/',$results);
+        $this->assertPattern('/El comit dempresa de TV3 acusa la direcci de la CCMA de populista/',$results);
         $this->assertNoPattern('/El Chelsea quiere a Mourinho YA #efectivament/',$results);
-        $this->assertNoPattern('/El comitè d’empresa de TV3 acusa la direcció de populista/',$results);
         $this->assertNoPattern('/Whoops! You don&#39;t have access to that user. Please try again./',$results);
 
         //Another owner with no permission
@@ -314,17 +314,13 @@ class TestOfSearchController extends ThinkUpUnitTestCase {
         $builders[] = FixtureBuilder::build('hashtags',
         array('hashtag' => 'tv3', 'network' => 'twitter', 'count_cache' => 0));
         $builders[] = FixtureBuilder::build('instances_hashtags',
-        array('instance_id' => 1, 'hashtag_id' => 1, 'last_post_id' => '0', 'earliest_post_id' => 0,
-        'last_page_fetched_tweets' => 1));
+        array('instance_id' => 1, 'hashtag_id' => 1, 'last_post_id' => '0', 'earliest_post_id' => 0));
         $builders[] = FixtureBuilder::build('instances_hashtags',
-        array('instance_id' => 1, 'hashtag_id' => 2, 'last_post_id' => '0', 'earliest_post_id' => 0,
-        'last_page_fetched_tweets' => 1));
+        array('instance_id' => 1, 'hashtag_id' => 2, 'last_post_id' => '0', 'earliest_post_id' => 0));
         $builders[] = FixtureBuilder::build('instances_hashtags',
-        array('instance_id' => 1, 'hashtag_id' => 3, 'last_post_id' => '0', 'earliest_post_id' => 0,
-        'last_page_fetched_tweets' => 1));
+        array('instance_id' => 1, 'hashtag_id' => 3, 'last_post_id' => '0', 'earliest_post_id' => 0));
         $builders[] = FixtureBuilder::build('instances_hashtags',
-        array('instance_id' => 1, 'hashtag_id' => 4, 'last_post_id' => '0', 'earliest_post_id' => 0,
-        'last_page_fetched_tweets' => 1));
+        array('instance_id' => 1, 'hashtag_id' => 4, 'last_post_id' => '0', 'earliest_post_id' => 0));
         $builders[] = FixtureBuilder::build('hashtags_posts',
         array('post_id' => 1, 'hashtag_id' => 1, 'network' => 'twitter'));
         $builders[] = FixtureBuilder::build('hashtags_posts',
@@ -341,7 +337,7 @@ class TestOfSearchController extends ThinkUpUnitTestCase {
             'author_fullname' => 'Eduard Cucurella',
             'author_avatar' => 'http://aa.com',
             'author_follower_count' => 0,
-            'post_text' => 'Demà treballadors de TV3 donarem sang #lasangdelatele #totssomtv3',
+            'post_text' => 'Dem treballadors de TV3 donarem sang #lasangdelatele #totssomtv3',
             'is_protected' => 0,
             'source' => '<a href=""></a>',
             'location' => 'BCN',
@@ -371,7 +367,7 @@ class TestOfSearchController extends ThinkUpUnitTestCase {
             'author_fullname' => 'Veterans Castellnou',
             'author_avatar' => 'http://aa.com',
             'author_follower_count' => 0,
-            'post_text' => 'El comitè d’empresa de TV3 acusa la direcció de la CCMA de populista',
+            'post_text' => 'El comit dempresa de TV3 acusa la direcci de la CCMA de populista',
             'is_protected' => 0,
             'source' => '<a href=""></a>',
             'location' => 'BCN',
@@ -430,7 +426,7 @@ class TestOfSearchController extends ThinkUpUnitTestCase {
             'author_fullname' => 'Veterans Castellnou',
             'author_avatar' => 'http://aa.com',
             'author_follower_count' => 0,
-            'post_text' => 'El comitè d’empresa de TV3 acusa la direcció de populista',
+            'post_text' => 'El comit dempresa de TV3 acusa la direcci de la CCMA de populista',
             'is_protected' => 0,
             'source' => '<a href=""></a>',
             'location' => 'BCN',

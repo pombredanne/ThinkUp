@@ -360,7 +360,7 @@ class TestOfPostMySQLDAO extends ThinkUpUnitTestCase {
 
         // add instance_twitter
         $builders[] = FixtureBuilder::build('instances_twitter',
-        array('last_page_fetched_replies' => 1, 'last_page_fetched_tweets' => 1));
+        array());
 
         // add hashtags 1 i 2
         $builders[] = FixtureBuilder::build('hashtags',
@@ -370,8 +370,7 @@ class TestOfPostMySQLDAO extends ThinkUpUnitTestCase {
 
         // add instances_hashtags 1
         $builders[] = FixtureBuilder::build('instances_hashtags',
-        array('instance_id' => 7, 'hashtag_id'=>1, 'last_post_id' => 0, 'earliest_post_id' => 0,
-                        'last_page_fetched_tweets' => 1));
+        array('instance_id' => 7, 'hashtag_id'=>1, 'last_post_id' => 0, 'earliest_post_id' => 0));
 
         // add users
         $builders[] = FixtureBuilder::build( 'users', array(
@@ -1799,10 +1798,18 @@ class TestOfPostMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertFalse($post->is_reply_by_friend);
         $this->assertEqual($post->is_geo_encoded, 0);
         $this->assertTrue($post->is_protected);
+        $this->assertEqual($post->favlike_count_cache, 0);
 
         //test add post that does exist
         $vals['post_id']=129;
         $this->assertFalse($dao->addPost($vals), "Post exists, nothing inserted");
+
+        //test add post with new favorite_count
+        $vals['post_id']=250;
+        $vals['favlike_count_cache']=67;
+        $this->assertFalse($dao->addPost($vals), "Post exists, nothing inserted");
+        $post = $dao->getPost(250, 'twitter');
+        $this->assertEqual($post->favlike_count_cache, 67);
 
         //test add reply, check cache count
         $vals['post_id']=251;
@@ -3600,9 +3607,8 @@ class TestOfPostMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual($res, $valid_json);
     }
 
-    public function testCountCheckinsToPlaceTypesLastWeek(){
-        // Build the pub_date string which needs to be a date within the last week
-        $pub1 = date(date( 'Y-m-d H:i:s' , strtotime("now")));
+    public function testCountCheckinsByPlaceType(){
+        $pub1 = date(date( 'Y-m-d H:i:s' , strtotime("now -2 week")));
         $pub2 = date(date( 'Y-m-d H:i:s' , strtotime("now +1 hour")));
 
         $hour1 = date('H',  strtotime("now") );
@@ -3805,6 +3811,82 @@ class TestOfPostMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual($average_retweet_count, 17);
     }
 
+    public function testGetAverageFaveCount() {
+        $builders = array();
+        //Add straight text posts
+        $counter = 1;
+        while ($counter < 40) {
+            $pseudo_minute = str_pad($counter, 2, "0", STR_PAD_LEFT);
+            if ($counter % 3 == 0) {
+                $source = '<a href="http://twitter.com" rel="nofollow">Tweetie for Mac</a>';
+            } else if ($counter % 3 == 1) {
+                $source = '<a href="http://twitter.com/tweetbutton" rel="nofollow">Tweet Button</a>';
+            } else {
+                $source = 'web';
+            }
+            $builders[] = FixtureBuilder::build('posts', array('id'=>$counter+256, 'post_id'=>$counter+256,
+            'author_user_id'=>'13', 'author_username'=>'ev', 'author_fullname'=>'Ev Williams',
+            'author_avatar'=>'avatar.jpg', 'post_text'=>'This is post '.$counter,
+            'source'=>$source, 'pub_date'=>'-'.$counter.'d', 'in_reply_to_user_id'=>null,
+            'reply_count_cache'=>($counter==10)?0:rand(0, 4), 'is_protected'=>0,
+            'retweet_count_cache'=>floor($counter/2), 'network'=>'twitter', 'favlike_count_cache'=> ($counter % 7),
+            'old_retweet_count_cache' => floor($counter/3), 'in_rt_of_user_id' => null,
+            'in_reply_to_post_id'=>null, 'in_retweet_of_post_id'=>null, 'is_geo_encoded'=>0));
+            $counter++;
+        }
+
+        $dao = new PostMySQLDAO();
+        //without date (today)
+        $average_fave_count = $dao->getAverageFaveCount('ev', 'twitter', 7);
+        $this->assertEqual($average_fave_count, 4);
+
+        //yesterday
+        $average_fave_count = $dao->getAverageFaveCount('ev', 'twitter', 7, date("Y-m-d", strtotime("-1 day")));
+        $this->assertEqual($average_fave_count, 3);
+
+        //40 days ago
+        $average_fave_count = $dao->getAverageFaveCount('ev', 'twitter', 7, date("Y-m-d", strtotime("-40 day")));
+        $this->assertEqual($average_fave_count, 3);
+    }
+
+    public function testGetAverageReplyCount() {
+        $builders = array();
+        //Add straight text posts
+        $counter = 1;
+        while ($counter < 40) {
+            $pseudo_minute = str_pad($counter, 2, "0", STR_PAD_LEFT);
+            if ($counter % 3 == 0) {
+                $source = '<a href="http://twitter.com" rel="nofollow">Tweetie for Mac</a>';
+            } else if ($counter % 3 == 1) {
+                $source = '<a href="http://twitter.com/tweetbutton" rel="nofollow">Tweet Button</a>';
+            } else {
+                $source = 'web';
+            }
+            $builders[] = FixtureBuilder::build('posts', array('id'=>$counter+256, 'post_id'=>$counter+256,
+            'author_user_id'=>'13', 'author_username'=>'ev', 'author_fullname'=>'Ev Williams',
+            'author_avatar'=>'avatar.jpg', 'post_text'=>'This is post '.$counter,
+            'source'=>$source, 'pub_date'=>'-'.$counter.'d', 'in_reply_to_user_id'=>null,
+            'reply_count_cache'=>$counter, 'is_protected'=>0,
+            'retweet_count_cache'=>0, 'network'=>'twitter', 'favlike_count_cache'=> 0,
+            'old_retweet_count_cache' => 0, 'in_rt_of_user_id' => null,
+            'in_reply_to_post_id'=>null, 'in_retweet_of_post_id'=>null, 'is_geo_encoded'=>0));
+            $counter++;
+        }
+
+        $dao = new PostMySQLDAO();
+        //without date (today)
+        $average_reply_count = $dao->getAverageReplyCount('ev', 'twitter', 7);
+        $this->assertEqual($average_reply_count, 4);
+
+        //yesterday
+        $average_reply_count = $dao->getAverageReplyCount('ev', 'twitter', 7, date("Y-m-d", strtotime("-1 day")));
+        $this->assertEqual($average_reply_count, 5);
+
+        //40 days ago
+        $average_reply_count = $dao->getAverageReplyCount('ev', 'twitter', 7, date("Y-m-d", strtotime("-40 day")));
+        $this->assertEqual($average_reply_count, 20);
+    }
+
     public function testDoesUserHavePostsWithRetweetsSinceDate() {
         $post_dao = new PostMySQLDAO();
         $result = $post_dao->doesUserHavePostsWithRetweetsSinceDate('user3', 'twitter', 7);
@@ -3834,7 +3916,78 @@ class TestOfPostMySQLDAO extends ThinkUpUnitTestCase {
         $result = $post_dao->doesUserHavePostsWithRetweetsSinceDate('user3', 'twitter', 30);
         $this->assertTrue($result);
 
-        $result = $post_dao->doesUserHavePostsWithRetweetsSinceDate('user3', 'twitter', 30, '2011-01-01');
+        $result = $post_dao->doesUserHavePostsWithRetweetsSinceDate('user3', 'twitter', 30,
+        date('Y-m-d', strtotime('+256 days')));
+        $this->assertFalse($result);
+    }
+
+    public function testDoesUserHavePostsWithFavesSinceDate() {
+        $post_dao = new PostMySQLDAO();
+        $result = $post_dao->doesUserHavePostsWithFavesSinceDate('user3', 'twitter', 7);
+        $this->assertFalse($result);
+
+        $counter = 0;
+        $id = 200;
+        $builders = array();
+        while ($counter < 40) {
+            $id += $counter;
+            $builders[] = FixtureBuilder::build('posts', array(
+            'id'=>$id,
+            'post_id'=>(147+$counter),
+            'author_user_id'=>23,
+            'author_username'=>'user3',
+            'pub_date'=>'-'.$counter.'d',
+            'retweet_count_cache'=>0,
+            'old_retweet_count_cache' => floor($counter/2),
+            'favlike_count_cache'=>$counter+1,
+            'network'=>'twitter',
+            'in_reply_to_user_id'=>null,
+            'in_reply_to_post_id'=>null,
+            'in_retweet_of_post_id'=>null
+            ));
+            $counter++;
+        }
+
+        $result = $post_dao->doesUserHavePostsWithFavesSinceDate('user3', 'twitter', 30);
+        $this->assertTrue($result);
+        $result = $post_dao->doesUserHavePostsWithFavesSinceDate('user3', 'twitter', 30,
+        date('Y-m-d', strtotime('+256 days')));
+        $this->assertFalse($result);
+    }
+
+    public function testDoesUserHavePostsWithRepliesSinceDate() {
+        $post_dao = new PostMySQLDAO();
+        $result = $post_dao->doesUserHavePostsWithRepliesSinceDate('user4', 'youtube', 7);
+        $this->assertFalse($result);
+
+        $counter = 0;
+        $id = 200;
+        $builders = array();
+        while ($counter < 40) {
+            $id += $counter;
+            $builders[] = FixtureBuilder::build('posts', array(
+            'id'=>$id,
+            'post_id'=>(147+$counter),
+            'author_user_id'=>23,
+            'author_username'=>'user4',
+            'pub_date'=>'-'.$counter.'d',
+            'retweet_count_cache'=> 0,
+            'old_retweet_count_cache' => 0,
+            'favlike_count_cache'=>0,
+            'network'=>'youtube',
+            'reply_count_cache'=>$counter,
+            'in_reply_to_user_id'=>null,
+            'in_reply_to_post_id'=>null,
+            'in_retweet_of_post_id'=>null
+            ));
+            $counter++;
+        }
+        // They do have replies from within 30 days
+        $result = $post_dao->doesUserHavePostsWithRepliesSinceDate('user4', 'youtube', 30);
+        $this->assertTrue($result);
+        // Set date to some time 30+ days in the future and were guaranteed to have no replies since then
+        $result = $post_dao->doesUserHavePostsWithRepliesSinceDate('user4', 'youtube', 30,
+        date('Y-m-d', strtotime('+31 days')));
         $this->assertFalse($result);
     }
 
@@ -3849,6 +4002,67 @@ class TestOfPostMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual($big_retweeters[1]->username, 'user2');
         $this->assertEqual($big_retweeters[2]->follower_count, 70);
         $this->assertEqual($big_retweeters[2]->username, 'linkbaiter');
+    }
+
+    public function testGetDaysAgoSinceUserRepliedToRecipient() {
+        $time_ago = array(
+            date('Y-m-d H:i:s', strtotime('-12 days')),
+            date('Y-m-d H:i:s', strtotime('-14 days')),
+            date('Y-m-d H:i:s', strtotime('-17 days'))
+        );
+
+        for ($i = 0; $i < 3; $i++) {
+            $builders[] = FixtureBuilder::build('posts', array(
+                'id'=>(760+$i),
+                'post_id'=>(760+$i),
+                'author_user_id'=>9912345,
+                'author_username'=>'user123',
+                'network'=>'twitter',
+                'pub_date'=>$time_ago[$i],
+                'in_reply_to_user_id'=>9912346
+            ));
+        }
+
+        $builders[] = FixtureBuilder::build('posts', array(
+            'id'=>763,
+            'post_id'=>763,
+            'author_user_id'=>9912345,
+            'author_username'=>'user123',
+            'network'=>'twitter',
+            'pub_date'=>$time_ago[2],
+            'in_reply_to_user_id'=>9912347
+        ));
+
+        $dao = new PostMySQLDAO();
+        $result_1 = $dao->getDaysAgoSinceUserRepliedToRecipient(9912345, 9912346, 'twitter');
+        $result_2 = $dao->getDaysAgoSinceUserRepliedToRecipient(9912345, 9912347, 'twitter');
+        $result_3 = $dao->getDaysAgoSinceUserRepliedToRecipient(9912345, 9912348, 'twitter'); // no replies
+
+        $this->assertEqual($result_1, 12);
+        $this->assertEqual($result_2, 17);
+        $this->assertNull($result_3);
+    }
+
+    public function testCountAllPostsByUserSinceDaysAgo() {
+        $builders = array();
+        $user_id = 7654321;
+        $counter = 0;
+        while ($counter < 53) {
+            $post_key = 1760 + $counter;
+            $post_date = date('Y-m-d H:i:s', strtotime('-'.$counter.' day'));
+
+            $builders[] = FixtureBuilder::build('posts', array('id'=>$post_key, 'post_id'=>$post_key,
+            'network'=>'twitter', 'author_user_id'=>$user_id, 'author_username'=>'user',
+            'in_reply_to_post_id'=>0, 'is_protected' => 0, 'author_fullname'=>'User',
+            'post_text'=>'Sample post '.$counter, 'pub_date'=>$post_date));
+
+            $counter++;
+        }
+
+        $post_dao = new PostMySQLDAO();
+        $result = $post_dao->countAllPostsByUserSinceDaysAgo($user_id, 'twitter', 31);
+
+        $this->assertEqual($result, 32);
     }
 
     public function testSearchPostsByUsername() {
@@ -3870,6 +4084,10 @@ class TestOfPostMySQLDAO extends ThinkUpUnitTestCase {
         $this->assertEqual(sizeof($results), 0);
 
         $results = $post_dao->searchPostsByUser('keyword', 'twitter', 'ev');
+        $this->assertEqual(sizeof($results), 0);
+
+        //test with repeated keywords
+        $results = $post_dao->searchPostsByUser(array('post','post'), 'twitter', 'ev');
         $this->assertEqual(sizeof($results), 0);
     }
     /**
@@ -4060,5 +4278,110 @@ class TestOfPostMySQLDAO extends ThinkUpUnitTestCase {
             $this->assertEqual($post->post_id, $counter);
             $counter = $counter-2;
         }
+    }
+
+    public function testCountCheckinsToPlaceTypesLastWeek() {
+        $dao = new PostMySQLDAO();
+        // Add place information for checkins
+        $place = array();
+        $place['place_id'] = '12345a';
+        $place['place_type'] = "Park";
+        $place['name'] = "A Park";
+        $place['full_name'] = "The Greatest Park";
+        $place['country_code'] = "UK";
+        $place['country'] = "United Kingdom";
+        $place['icon'] = "http://www.iconlocation.com";
+        $place['network'] = "foursquare";
+        $place['longlat'] = "GeometryFromText( 'Point(51.514 -0.1167)' )";
+        $place['bounding_box'] = "PolygonFromText( 'Polygon(-0.213503 51.512805,-0.105303 51.512805,".
+        "-0.105303 51.572068,-0.213503 51.572068, -0.213503 51.512805)')";
+        $place['map_image'] = "http://www.mapimage.com";
+        $this->builders[] = FixtureBuilder::build('places', $place);
+
+        $place = array();
+        $place['place_id'] = '12345b';
+        $place['place_type'] = "Museum";
+        $place['name'] = "A Park";
+        $place['full_name'] = "The Greatest Park";
+        $place['country_code'] = "UK";
+        $place['country'] = "United Kingdom";
+        $place['icon'] = "http://www.iconlocation.com";
+        $place['network'] = "foursquare";
+        $place['longlat'] = "GeometryFromText( 'Point(51.514 -0.1167)' )";
+        $place['bounding_box'] = "PolygonFromText( 'Polygon(-0.213503 51.512805,-0.105303 51.512805,".
+        "-0.105303 51.572068,-0.213503 51.572068, -0.213503 51.512805)')";
+        $place['map_image'] = "http://www.mapimage.com";
+        $this->builders[] = FixtureBuilder::build('places', $place);
+
+        $place = array();
+        $place['place_id'] = '12345c';
+        $place['place_type'] = "Museum";
+        $place['name'] = "A Park";
+        $place['full_name'] = "The Greatest Park";
+        $place['country_code'] = "UK";
+        $place['country'] = "United Kingdom";
+        $place['icon'] = "http://www.iconlocation.com";
+        $place['network'] = "foursquare";
+        $place['longlat'] = "GeometryFromText( 'Point(51.514 -0.1167)' )";
+        $place['bounding_box'] = "PolygonFromText( 'Polygon(-0.213503 51.512805,-0.105303 51.512805,".
+        "-0.105303 51.572068,-0.213503 51.572068, -0.213503 51.512805)')";
+        $place['map_image'] = "http://www.mapimage.com";
+        $this->builders[] = FixtureBuilder::build('places', $place);
+
+        // ensure this is not this week
+        $this->builders[] = FixtureBuilder::build('posts', array('post_id'=>'249', 'author_user_id'=>'20',
+        'author_username'=>'user1', 'author_fullname'=>'User 1', 'network'=>'foursquare',
+        'post_text'=>'I just checked in', 'source'=>'', 'pub_date'=>'2011-12-1 09:50:00', 'location'=>'England',
+        'old_retweet_count_cache' => 0, 'in_rt_of_user_id' => null, 'place'=>'The Park', 'place_id'=>'12345a',
+        'reply_count_cache'=>0, 'retweet_count_cache'=>0, 'network'=>'foursquare',
+        'in_reply_to_user_id' =>'23', 'in_reply_to_post_id' => null,
+        'geo'=>'52.477192843264,-1.484333726346'));
+
+        $res = $dao->countCheckinsToPlaceTypesLastWeek(20, 'foursquare');
+        // We now have posts, but they are way in the past.  Nothing this week
+        $this->assertEqual($res, '');
+
+        // now we add some this week.
+        $this->builders[] = FixtureBuilder::build('posts', array('post_id'=>'250', 'author_user_id'=>'20',
+        'author_username'=>'user1', 'author_fullname'=>'User 1', 'network'=>'foursquare',
+        'post_text'=>'I just checked in', 'source'=>'', 'pub_date'=>date('Y-m-d').' 09:50:00', 'location'=>'England',
+        'old_retweet_count_cache' => 0, 'in_rt_of_user_id' => null, 'place'=>'The Park', 'place_id'=>'12345a',
+        'reply_count_cache'=>0, 'retweet_count_cache'=>0, 'network'=>'foursquare',
+        'in_reply_to_user_id' =>'23', 'in_reply_to_post_id' => null,
+        'geo'=>'52.477192843264,-1.484333726346'));
+
+        $this->builders[] = FixtureBuilder::build('posts', array('post_id'=>'251', 'author_user_id'=>'20',
+        'author_username'=>'user1', 'author_fullname'=>'User 1', 'network'=>'foursquare',
+        'post_text'=>'I just checked in', 'source'=>'', 'pub_date'=>date('Y-m-d').' 09:50:00', 'location'=>'England',
+        'old_retweet_count_cache' => 0, 'in_rt_of_user_id' => null, 'place'=>'The Park', 'place_id'=>'12345c',
+        'reply_count_cache'=>0, 'retweet_count_cache'=>0, 'network'=>'foursquare',
+        'in_reply_to_user_id' =>'23', 'in_reply_to_post_id' => null,
+        'geo'=>'52.477192843264,-1.484333726346'));
+
+        $this->builders[] = FixtureBuilder::build('posts', array('post_id'=>'253', 'author_user_id'=>'20',
+        'author_username'=>'user1', 'author_fullname'=>'User 1', 'network'=>'foursquare',
+        'post_text'=>'I just checked in', 'source'=>'', 'pub_date'=>date('Y-m-d').' 09:51:00', 'location'=>'England',
+        'old_retweet_count_cache' => 0, 'in_rt_of_user_id' => null, 'place'=>'The Park', 'place_id'=>'12345b',
+        'reply_count_cache'=>0, 'retweet_count_cache'=>0, 'network'=>'foursquare',
+        'in_reply_to_user_id' =>'23', 'in_reply_to_post_id' => null,
+        'geo'=>'52.477192843264,-1.484333726346'));
+
+        // Now we have actual checkins this week.
+        // 2 Museums, 1 Park
+        // And we can verify the formatting for the charts.
+        $res = $dao->countCheckinsToPlaceTypesLastWeek(20, 'foursquare');
+        $this->assertNotEqual($res, '');
+        $res = json_decode($res);
+
+        $this->assertEqual($res->rows[0]->c[0]->v, 'Museum');
+        $this->assertEqual($res->rows[0]->c[0]->f, 'Museum');
+        $this->assertEqual($res->rows[0]->c[1]->v, 2);
+        $this->assertEqual($res->rows[1]->c[0]->v, 'Park');
+        $this->assertEqual($res->rows[1]->c[0]->f, 'Park');
+        $this->assertEqual($res->rows[1]->c[1]->v, 1);
+        $this->assertEqual($res->cols[0]->type, 'string');
+        $this->assertEqual($res->cols[0]->label, 'Place Type');
+        $this->assertEqual($res->cols[1]->type, 'number');
+        $this->assertEqual($res->cols[1]->label, 'Number of Checkins to this place type');
     }
 }

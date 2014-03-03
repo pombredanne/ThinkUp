@@ -1,7 +1,7 @@
 <?php
 /*
  Plugin Name: Amplifier
- Description: Show how many more users a message has reached due to your retweet.
+ Description: How many more users a message has reached due to your reshare or retweet.
  */
 
 /**
@@ -41,11 +41,10 @@ class AmplifierInsight extends InsightPluginParent implements InsightPlugin {
             //if post was a retweet, check if insight exists
             if ($post->in_retweet_of_post_id != null && $post->in_rt_of_user_id != null) {
                 $simplified_post_date = date('Y-m-d', strtotime($post->pub_date));
-                $existing_insight = $this->insight_dao->getInsight('amplifier_'.$post->id, $instance->id,
-                $simplified_post_date);
 
                 //if insight doesn't exist fetch user details of original author and instance
-                if (!isset($existing_insight)) {
+                if (self::shouldGenerateInsight('amplifier_'.$post->id, $instance,
+                $insight_date=$simplified_post_date)) {
                     if (!isset($user_dao)) {
                         $user_dao = DAOFactory::getDAO('UserDAO');
                     }
@@ -59,7 +58,7 @@ class AmplifierInsight extends InsightPluginParent implements InsightPlugin {
                         $insight_text = "$this->username broadcast this post to <strong>$add_audience</strong> ".
                         "more people than its author originally reached.";
 
-                        $this->insight_dao->insertInsight('amplifier_'.$post->id, $instance->id,
+                        $this->insight_dao->insertInsightDeprecated('amplifier_'.$post->id, $instance->id,
                         $simplified_post_date, "Amplifier:", $insight_text, $filename, Insight::EMPHASIS_LOW,
                         serialize($post));
                     }

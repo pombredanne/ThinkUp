@@ -42,6 +42,7 @@
     </div>
     {/foreach}
 </div>
+    {include file="_usermessage.tpl" field="membership_cap"}
 
     {if isset($owner_instance_pages) && count($owner_instance_pages) > 0 }{include file="_usermessage.tpl" field="page_add"}{/if}
 
@@ -74,11 +75,11 @@
 </div>
     {/if}
 
-<div>
-<h2>Add a Facebook Page</h2>
 {foreach from=$instances key=iid item=i name=foo}
   {assign var='facebook_user_id' value=$i->network_user_id}
   {if $user_pages.$facebook_user_id or $user_admin_pages.$facebook_user_id}
+<div>
+<h2>Add a Facebook Page</h2>
       <div class="row-fluid">
         <div class="span6">
           <form name="addpage" action="index.php?p=facebook">
@@ -105,14 +106,10 @@
            <span id="divaddpage{$i->network_username}"><input type="submit" name="action" class="btn addPage"  id="{$i->network_username}" value="add page" /></span>
         </div>
      </div>
-    {else}
-    <div class="article">
-    To add a Facebook page to ThinkUp, create a new page on Facebook.com or "like" an existing one, and refresh this page.
-    </div>
+</div>
     {/if}
 {/foreach}
 
-</div>
 
 {/if}
 
@@ -131,7 +128,7 @@
     Fill in the following settings.<br />
     <strong>App Display Name:</strong> <span style="font-family:Courier;">{$logged_in_user} ThinkUp</span><br />
     <strong>App Namespace:</strong> [leave blank]<br />
-    <strong>Web Hosting:</strong> [Do not check box]<br />
+    <strong>App Category:</strong> [Leave as default: Other - Choose a sub-category]<br />
     Click "Continue", enter in the security word, and click "Continue" again
 </li>
 <li>
